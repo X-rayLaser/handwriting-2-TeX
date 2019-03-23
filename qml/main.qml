@@ -7,8 +7,8 @@ Window {
     id: root
     x: 400
     y: 400
-    width: 600
-    height: 650
+    width: 400
+    height: 400
     visible: true
 
     property string latex: "\\\\frac{1}{4}"
@@ -23,7 +23,7 @@ Window {
         Canvas {
             id: canvas
             width: parent.width
-            height: 400
+            height: 200
 
             onPaint: {
                 var ctx = getContext("2d");
@@ -83,12 +83,31 @@ Window {
 
         Text {
             id: predicted_expression
-            text: "\\sum{i=0}^{N}"
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: latex
         }
 
-        Button {
-            id: download_button
-            text: "Copy to clipboard"
+        Row {
+            spacing: 10
+            anchors.horizontalCenter: parent.horizontalCenter
+            Button {
+                text: "Eraze"
+                onClicked: {
+                    mouse_area.points = [];
+                    canvas.getContext("2d").reset();
+                    canvas.requestPaint();
+                }
+            }
+            Button {
+                id: download_button
+
+                text: "Copy to clipboard"
+
+                onClicked: {
+                    manager.copy_to_clipboard(latex);
+                }
+            }
         }
 
         Connections {

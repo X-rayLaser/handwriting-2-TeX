@@ -2,7 +2,7 @@ import sys
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtGui import QGuiApplication
+from PyQt5.QtGui import QGuiApplication, QClipboard
 from PyQt5.QtWebEngine import QtWebEngine
 
 
@@ -19,8 +19,9 @@ class Recognizer(QtCore.QThread):
 class AppManager(QtCore.QObject):
     predictionReady = QtCore.pyqtSignal(str, arguments=['prediction'])
 
-    def __init__(self):
+    def __init__(self, clipboard):
         super().__init__()
+        self.clipboard = clipboard
         self.thread = None
 
     @QtCore.pyqtSlot(list)
@@ -32,6 +33,10 @@ class AppManager(QtCore.QObject):
 
         thread.start()
 
+    @QtCore.pyqtSlot(str)
+    def copy_to_clipboard(self, text):
+        self.clipboard.setText(text)
+
 
 if __name__ == '__main__':
     sys_argv = sys.argv
@@ -40,7 +45,8 @@ if __name__ == '__main__':
     QtWebEngine.initialize()
     engine = QQmlApplicationEngine()
 
-    manager = AppManager()
+    clipboard = app.clipboard()
+    manager = AppManager(clipboard)
     engine.rootContext().setContextProperty("manager", manager)
 
     engine.load(QUrl("qml/main.qml"))
