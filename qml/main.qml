@@ -1,8 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Window 2.0
 import QtQuick.Controls 2.2
-import QtQuick.Dialogs 1.1
-
+import QtWebEngine 1.0
 
 Window {
     id: root
@@ -11,6 +10,8 @@ Window {
     width: 600
     height: 650
     visible: true
+
+    property string latex: "\\\\frac{1}{4}"
 
     Column {
         spacing: 10
@@ -38,33 +39,47 @@ Window {
                 ctx.stroke();
             }
 
+            MouseArea {
+                id: mouse_area
+                anchors.fill: parent
+                hoverEnabled: true
 
-                MouseArea {
-                    id: mouse_area
-                    anchors.fill: parent
-                    hoverEnabled: true
+                property var points : []
 
-                    property var points : []
+                property bool pressed: false
+                onPressed: {
+                    pressed = true;
+                    points.push([]);
+                }
 
-                    property bool pressed: false
-                    onPressed: {
-                        pressed = true;
-                        points.push([]);
-                    }
+                onReleased: {
+                    pressed = false;
+                    webEngineView.reload();
 
-                    onReleased: {
-                        pressed = false;
-                    }
-                    onPositionChanged: {
-                        if (pressed === true) {
-                            var figurePoints = points[points.length - 1];
+                }
+                onPositionChanged: {
+                    if (pressed === true) {
+                        var figurePoints = points[points.length - 1];
 
-                            figurePoints.push({x: mouseX, y: mouseY})
+                        figurePoints.push({x: mouseX, y: mouseY})
 
-                            canvas.requestPaint();
-                        }
+                        canvas.requestPaint();
                     }
                 }
+            }
+        }
+
+        WebEngineView {
+            id: webEngineView
+            width: parent.width
+            height: 100
+            url: "TeX_layout.html"
+
+            onLoadProgressChanged: {
+                if(loadProgress === 100){
+                    webEngineView.runJavaScript("document.getElementById('latex_body').innerHTML = '$$" + latex + "$$';");
+                }
+            }
         }
 
         Text {
