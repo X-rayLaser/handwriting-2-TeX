@@ -55,7 +55,6 @@ Window {
                 onReleased: {
                     pressed = false;
                     manager.recognize([]);
-                    webEngineView.reload();
                 }
                 onPositionChanged: {
                     if (pressed === true) {
@@ -96,6 +95,7 @@ Window {
             target: manager
             onPredictionReady: {
                 latex = prediction;
+                webEngineView.reload();
             }
         }
 

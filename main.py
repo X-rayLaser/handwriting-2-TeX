@@ -6,15 +6,31 @@ from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWebEngine import QtWebEngine
 
 
+class Recognizer(QtCore.QThread):
+    completed = QtCore.pyqtSignal(str)
+
+    def run(self):
+        import time
+        time.sleep(1)
+        res = '\\\\frac{A}{B + 4}'
+        self.completed.emit(res)
+
+
 class AppManager(QtCore.QObject):
     predictionReady = QtCore.pyqtSignal(str, arguments=['prediction'])
 
     def __init__(self):
         super().__init__()
+        self.thread = None
 
     @QtCore.pyqtSlot(list)
     def recognize(self, pixels):
-        self.predictionReady.emit('\\\\frac{A}{B + 4}')
+        self.thread = Recognizer()
+        thread = self.thread
+
+        thread.completed.connect(lambda res: self.predictionReady.emit(res))
+
+        thread.start()
 
 
 if __name__ == '__main__':
