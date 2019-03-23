@@ -54,8 +54,8 @@ Window {
 
                 onReleased: {
                     pressed = false;
+                    manager.recognize([]);
                     webEngineView.reload();
-
                 }
                 onPositionChanged: {
                     if (pressed === true) {
@@ -83,12 +83,20 @@ Window {
         }
 
         Text {
+            id: predicted_expression
             text: "\\sum{i=0}^{N}"
         }
 
         Button {
             id: download_button
             text: "Copy to clipboard"
+        }
+
+        Connections {
+            target: manager
+            onPredictionReady: {
+                latex = prediction;
+            }
         }
 
     }

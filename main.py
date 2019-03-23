@@ -7,10 +7,14 @@ from PyQt5.QtWebEngine import QtWebEngine
 
 
 class AppManager(QtCore.QObject):
-    stateChanged = QtCore.pyqtSignal()
+    predictionReady = QtCore.pyqtSignal(str, arguments=['prediction'])
 
     def __init__(self):
         super().__init__()
+
+    @QtCore.pyqtSlot(list)
+    def recognize(self, pixels):
+        self.predictionReady.emit('\\\\frac{A}{B + 4}')
 
 
 if __name__ == '__main__':
