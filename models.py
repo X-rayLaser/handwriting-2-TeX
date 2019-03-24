@@ -28,7 +28,6 @@ class DigitsNet:
             self.b2 -= learning_rate * db2
             print('Cost {}'.format(self.compute_cost(Y, A2)))
 
-
     def back_propagation(self, X, A2, Y, cache):
         m = Y.shape[1]
 
@@ -85,7 +84,8 @@ class DigitsNet:
     def predict(self, x):
         x = x.reshape(28**2, 1)
         A2, cache = self.forward_propagation(x)
-        return np.argmax(A2)[0][0]
+        p = np.max(A2)
+        return np.argmax(A2), p
 
     def save(self, fname):
         with open(fname, 'w') as f:
@@ -109,12 +109,12 @@ def get_model():
     if not os.path.isfile('mnist_model.json'):
         raise Exception('Model file not found')
 
-    with open('model.txt') as f:
+    with open('mnist_model.json') as f:
         s = f.read()
     d = json.loads(s)
 
     net = DigitsNet(28*28, 30, 10)
-    net = net.restore(d)
+    net.restore(d)
     return net
 
 
@@ -132,8 +132,26 @@ def estimate_accuracy(net, X, labels):
     )
 
 
+def extract_dataset_mean(Xtrain):
+    with open('mnist_info.json', 'w') as f:
+        nx, m = Xtrain.shape
+        mu = np.mean(Xtrain, axis=1, keepdims=True)
+        d = {
+            'mu': mu.tolist()
+        }
+        f.write(json.dumps(d))
+
+
 def normalize(X):
-    return (X - np.mean(X, axis=1, keepdims=True)) / 255.0
+    if not os.path.isfile('mnist_info.json'):
+        raise Exception('File {} does not exist'.format('mnist_info.json'))
+
+    with open('mnist_info.json', 'r') as f:
+        s = f.read()
+        d = json.loads(s)
+        mu = np.array(d['mu'])
+
+    return (X - mu) / 255.0
 
 
 def train_model(learning_rate=0.001, epochs=10):
@@ -142,13 +160,13 @@ def train_model(learning_rate=0.001, epochs=10):
     images, labels = mndata.load_training()
     images_test, labels_test = mndata.load_testing()
 
-    images = images
-    labels = labels
-    images_test = images_test
-    labels_test = labels_test
+    Xtrain = np.array(images).T
+    Xtest = np.array(images_test).T
 
-    Xtrain = normalize(np.array(images).T)
-    Xtest = normalize(np.array(images_test).T)
+    extract_dataset_mean(Xtrain)
+
+    Xtrain_norm = normalize(Xtrain)
+    Xtest_norm = normalize(Xtest)
 
     mtrain = Xtrain.shape[1]
     mtest = Xtest.shape[1]
@@ -165,10 +183,10 @@ def train_model(learning_rate=0.001, epochs=10):
         Ytest[label, i] = 1.0
 
     net = DigitsNet(28*28, 100, 10)
-    net.train(Xtrain, Ytrain, learning_rate=learning_rate, epochs=epochs)
+    net.train(Xtrain_norm, Ytrain, learning_rate=learning_rate, epochs=epochs)
 
-    estimate_accuracy(net, Xtrain, labels)
-    estimate_accuracy(net, Xtest, labels_test)
+    estimate_accuracy(net, Xtrain_norm, labels)
+    estimate_accuracy(net, Xtest_norm, labels_test)
 
     net.save('mnist_model.json')
 
@@ -182,7 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--lrate', type=float, default=1.5,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='number of iterations')
 
     args = parser.parse_args()

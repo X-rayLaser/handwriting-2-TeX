@@ -1,2 +1,7 @@
 venv/
 \.idea/
+*.pyc
+*.jpg
+*.png
+*.json
+datasets/
