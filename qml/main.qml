@@ -20,58 +20,65 @@ Window {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
-        Canvas {
-            id: canvas
-            width: parent.width
-            height: 200
 
-            onPaint: {
-                var ctx = getContext("2d");
-                ctx.fillStyle = "rgb(255, 255, 255)";
-                mouse_area.points.forEach(function (figurePoints) {
-                    ctx.beginPath();
-                    ctx.moveTo(figurePoints[0]);
-                    ctx.lineTo(figurePoints[0]);
-                    figurePoints.forEach(function (p) {
-                        ctx.lineTo(p.x, p.y)
+        Rectangle {
+            width: 28
+            height: 28
+            border.color: "red"
+
+            Canvas {
+                id: canvas
+                width: 28
+                height: 28
+
+                onPaint: {
+                    var ctx = getContext("2d");
+                    ctx.fillStyle = "rgb(255, 255, 255)";
+                    mouse_area.points.forEach(function (figurePoints) {
+                        ctx.beginPath();
+                        ctx.moveTo(figurePoints[0]);
+                        ctx.lineTo(figurePoints[0]);
+                        figurePoints.forEach(function (p) {
+                            ctx.lineTo(p.x, p.y)
+                        });
                     });
-                });
-                ctx.stroke();
-            }
-
-            MouseArea {
-                id: mouse_area
-                anchors.fill: parent
-                hoverEnabled: true
-
-                property var points : []
-
-                property bool pressed: false
-                onPressed: {
-                    pressed = true;
-                    points.push([]);
+                    ctx.stroke();
                 }
 
-                onReleased: {
-                    pressed = false;
-                    var w = canvas.width;
-                    var h = canvas.height;
-                    var imageData = canvas.getContext("2d").getImageData(0, 0, w, h);
-                    var data = [];
-                    for (var i = 0; i < imageData.data.length; i++) {
-                        data.push(imageData.data[i]);
+                MouseArea {
+                    id: mouse_area
+                    anchors.fill: parent
+                    hoverEnabled: true
+
+                    property var points : []
+
+                    property bool pressed: false
+                    onPressed: {
+                        pressed = true;
+                        points.push([]);
                     }
-                    var width = imageData.width;
-                    var height = imageData.height;
-                    manager.recognize(data, width, height);
-                }
-                onPositionChanged: {
-                    if (pressed === true) {
-                        var figurePoints = points[points.length - 1];
 
-                        figurePoints.push({x: mouseX, y: mouseY})
+                    onReleased: {
+                        pressed = false;
+                        var w = canvas.width;
+                        var h = canvas.height;
+                        var imageData = canvas.getContext("2d").getImageData(0, 0, w, h);
+                        var data = [];
+                        for (var i = 0; i < imageData.data.length; i++) {
+                            data.push(imageData.data[i]);
+                        }
+                        var width = imageData.width;
+                        var height = imageData.height;
+                        manager.recognize(data, width, height);
+                    }
+                    onPositionChanged: {
+                        if (pressed === true) {
+                            var figurePoints = points[points.length - 1];
 
-                        canvas.requestPaint();
+                            figurePoints.push({x: mouseX, y: mouseY})
+
+                            canvas.requestPaint();
+                        }
                     }
                 }
             }

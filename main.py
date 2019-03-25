@@ -23,6 +23,21 @@ class Recognizer(QtCore.QThread):
         width = pixmap.shape[1]
         model = get_model()
 
+        window = pixmap[:win_size, :win_size]
+        window = window.reshape(28 * 28, 1)
+        print(window)
+        print(np.max(window))
+        print(np.mean(window))
+
+
+        x = normalize(window)
+        digit, prob = model.predict(x)
+        print(digit, prob)
+        res = str(digit)
+        self.completed.emit(res)
+
+        return
+
         best_match = (0, 0)
 
         for i in range(height - win_size + 1):
@@ -60,7 +75,7 @@ class AppManager(QtCore.QObject):
         im = Image.frombytes('RGBA', (width, height), a).convert('LA')
         im.save('canvas.png')
         im = Image.open('canvas.png')
-        pixels = np.array([lum for lum, alpha in list(im.getdata())]).reshape(height, width)
+        pixels = np.array([lum for alpha, lum in list(im.getdata())]).reshape(height, width)
         self.thread = Recognizer(pixels)
         thread = self.thread
 

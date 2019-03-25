@@ -132,6 +132,66 @@ def estimate_accuracy(net, X, labels):
     )
 
 
+def shift_pixels_right(pixels, k):
+    image = np.array(pixels).reshape(28, 28)
+    x = np.empty_like(image)
+    x[:, k:28] = image[:, :28-k]
+    x[:, :k] = np.zeros((28, k))
+    return x.reshape(28*28).tolist()
+
+
+def shift_pixels_left(pixels, k):
+    image = np.array(pixels).reshape(28, 28)
+    x = np.empty_like(image)
+    x[:, :28-k] = image[:, k:28]
+    x[:, :28-k] = image[:, k:28]
+
+    x[:, 28-k:] = np.zeros((28, k))
+    return x.reshape(28*28).tolist()
+
+
+def shift_pixels_up(pixels, k):
+    image = np.array(pixels).reshape(28, 28)
+
+    x = np.empty_like(image)
+    x[k:28, :] = image[28-k:, :]
+    x[:k, :] = np.zeros((k, 28))
+    return x.reshape(28*28).tolist()
+
+
+def shift_pixels_down(pixels, k):
+    image = np.array(pixels).reshape(28, 28)
+
+    x = np.empty_like(image)
+    x[:28-k, :] = image[k:28, :]
+    x[:28-k, :] = image[k:28, :]
+
+    x[28-k:, :] = np.zeros((k, 28))
+    return x.reshape(28*28).tolist()
+
+
+def shift(images, max_shift=3):
+    extended_set = []
+
+    for im in images:
+        a = np.array(im).reshape(28*28, 1)
+        extended_set.append(im)
+
+        for k in range(1, max_shift + 1):
+            extended_set.append(shift_pixels_right(a, k))
+
+        for k in range(1, max_shift + 1):
+            extended_set.append(shift_pixels_left(a, k))
+
+        for k in range(1, max_shift + 1):
+            extended_set.append(shift_pixels_up(a, k))
+
+        for k in range(1, max_shift + 1):
+            extended_set.append(shift_pixels_down(a, k))
+
+    return extended_set
+
+
 def extract_dataset_mean(Xtrain):
     with open('mnist_info.json', 'w') as f:
         nx, m = Xtrain.shape
@@ -160,8 +220,12 @@ def train_model(learning_rate=0.001, epochs=10):
     images, labels = mndata.load_training()
     images_test, labels_test = mndata.load_testing()
 
+    #images = shift(images, max_shift=1) # runs out of memory during transpose step
+    print("shifted!")
     Xtrain = np.array(images).T
     Xtest = np.array(images_test).T
+
+    print('done')
 
     extract_dataset_mean(Xtrain)
 
@@ -197,10 +261,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Given an image, compress it using JPEG algorithm'
     )
-    parser.add_argument('--lrate', type=float, default=1.5,
+    parser.add_argument('--lrate', type=float, default=1.0,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=100,
                         help='number of iterations')
 
     args = parser.parse_args()
