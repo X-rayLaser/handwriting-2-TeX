@@ -132,43 +132,9 @@ def estimate_accuracy(net, X, labels):
     )
 
 
-def shift_pixels_right(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-    x = np.empty_like(image)
-    x[:, k:28] = image[:, :28-k]
-    x[:, :k] = np.zeros((28, k))
-    return x.reshape(28*28).tolist()
-
-
-def shift_pixels_left(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-    x = np.empty_like(image)
-    x[:, :28-k] = image[:, k:28]
-
-    x[:, 28-k:] = np.zeros((28, k))
-    return x.reshape(28*28).tolist()
-
-
-def shift_pixels_up(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-
-    x = np.empty_like(image)
-    x[:k, :] = image[-k:, :]
-    x[-k:, :] = np.zeros((k, 28))
-    return x.reshape(28*28).tolist()
-
-
-def shift_pixels_down(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-
-    x = np.empty_like(image)
-    x[:28-k, :] = image[k:28, :]
-
-    x[28-k:, :] = np.zeros((k, 28))
-    return x.reshape(28*28).tolist()
-
-
 def shift(images, max_shift=3):
+    from util import shift_pixels_right, shift_pixels_down,\
+        shift_pixels_left, shift_pixels_up
     print(len(images[0]))
     extended_set = []
 
