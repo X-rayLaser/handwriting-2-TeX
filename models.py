@@ -144,7 +144,6 @@ def shift_pixels_left(pixels, k):
     image = np.array(pixels).reshape(28, 28)
     x = np.empty_like(image)
     x[:, :28-k] = image[:, k:28]
-    x[:, :28-k] = image[:, k:28]
 
     x[:, 28-k:] = np.zeros((28, k))
     return x.reshape(28*28).tolist()
@@ -154,8 +153,8 @@ def shift_pixels_up(pixels, k):
     image = np.array(pixels).reshape(28, 28)
 
     x = np.empty_like(image)
-    x[k:28, :] = image[28-k:, :]
-    x[:k, :] = np.zeros((k, 28))
+    x[:k, :] = image[-k:, :]
+    x[-k:, :] = np.zeros((k, 28))
     return x.reshape(28*28).tolist()
 
 
@@ -164,13 +163,13 @@ def shift_pixels_down(pixels, k):
 
     x = np.empty_like(image)
     x[:28-k, :] = image[k:28, :]
-    x[:28-k, :] = image[k:28, :]
 
     x[28-k:, :] = np.zeros((k, 28))
     return x.reshape(28*28).tolist()
 
 
 def shift(images, max_shift=3):
+    print(len(images[0]))
     extended_set = []
 
     for im in images:
@@ -220,10 +219,13 @@ def train_model(learning_rate=0.001, epochs=10):
     images, labels = mndata.load_training()
     images_test, labels_test = mndata.load_testing()
 
-    #images = shift(images, max_shift=1) # runs out of memory during transpose step
+    from util import embed_noise
+
+    #images = shift(images, max_shift=2)
+
     print("shifted!")
-    Xtrain = np.array(images).T
-    Xtest = np.array(images_test).T
+    Xtrain = np.array(images, dtype=np.uint8).T
+    Xtest = np.array(images_test, dtype=np.uint8).T
 
     print('done')
 
@@ -264,7 +266,7 @@ if __name__ == '__main__':
     parser.add_argument('--lrate', type=float, default=1.0,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=100,
+    parser.add_argument('--epochs', type=int, default=5,
                         help='number of iterations')
 
     args = parser.parse_args()
