@@ -5,54 +5,48 @@ import numpy as np
 dataset_root = './datasets/mnist'
 
 
-def shift_pixels_right(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
+def shift_pixels_right(image, k):
     x = np.empty_like(image)
     x[:, k:28] = image[:, :28-k]
     x[:, :k] = np.zeros((28, k))
-    return x.reshape(28*28).tolist()
+    return x
 
 
-def shift_pixels_left(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
+def shift_pixels_left(image, k):
     x = np.empty_like(image)
     x[:, :28-k] = image[:, k:28]
 
     x[:, 28-k:] = np.zeros((28, k))
-    return x.reshape(28*28).tolist()
+    return x
 
 
-def horizontal_shift(pixels, k):
-    if k > 0:
-        return shift_pixels_right(pixels, k)
-    else:
-        return shift_pixels_left(pixels, abs(k))
-
-
-def vertical_shift(pixels, k):
-    if k > 0:
-        return shift_pixels_down(pixels, k)
-    else:
-        return shift_pixels_up(pixels, k)
-
-
-def shift_pixels_up(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-
+def shift_pixels_up(image, k):
     x = np.empty_like(image)
     x[:k, :] = image[-k:, :]
     x[-k:, :] = np.zeros((k, 28))
-    return x.reshape(28*28).tolist()
+    return x
 
 
-def shift_pixels_down(pixels, k):
-    image = np.array(pixels).reshape(28, 28)
-
+def shift_pixels_down(image, k):
     x = np.empty_like(image)
     x[:28-k, :] = image[k:28, :]
 
     x[28-k:, :] = np.zeros((k, 28))
-    return x.reshape(28*28).tolist()
+    return x
+
+
+def horizontal_shift(image, k):
+    if k > 0:
+        return shift_pixels_right(image, k)
+    else:
+        return shift_pixels_left(image, abs(k))
+
+
+def vertical_shift(image, k):
+    if k > 0:
+        return shift_pixels_down(image, k)
+    else:
+        return shift_pixels_up(image, abs(k))
 
 
 def embed_noise(a, noise=50):
@@ -132,13 +126,21 @@ def rotate(a, angle, origin=None):
     return res
 
 
-def random_transformation(image):
+def scale(image, scaling_factor):
+    return image
+
+
+def random_transformation(pixels):
     max_shift = 6
     hor_shift = np.random.randint(-max_shift, max_shift)
     vert_shift = np.random.randint(-max_shift, max_shift)
-    noise_mag = np.random.randint(0, 50)
-    rotation_angle = np.random.randint(-10, 10)
+    noise_mag = np.random.randint(15, 30)
+    rotation_angle = np.random.randint(-50, 50)
     scaling_factor = np.random.randint(1, 3)
+
+    image = np.array(pixels).reshape(28, 28)
+
+    image = rotate(image, rotation_angle, origin=(14, 14))
 
     if hor_shift != 0:
         image = horizontal_shift(image, hor_shift)
@@ -146,15 +148,19 @@ def random_transformation(image):
     if vert_shift != 0:
         image = vertical_shift(image, vert_shift)
 
-    embed_noise(image, noise_mag)
-    #image = rotate(image, rotation_angle)
-    #image = scale(image, scaling_factor)
+    image = embed_noise(image, noise_mag)
+
+    image = scale(image, scaling_factor)
 
     return image
 
 
 def list_to_line(elements):
     return ' '.join([str(x) for x in elements]) + '\n'
+
+
+def line_to_list(line):
+    return [int(num) for num in line.strip().split(' ')]
 
 
 def create_training_set():
@@ -171,12 +177,15 @@ def create_training_set():
             image = images[i]
             label = labels[i]
             fx.write(list_to_line(image))
-            fy.write(label + '\n')
+            fy.write(str(label) + '\n')
 
             for k in range(3):
                 timage = random_transformation(image).tolist()
                 fx.write(list_to_line(timage))
-                fy.write(label + '\n')
+                fy.write(str(label) + '\n')
+
+            if i % 1000 == 0:
+                print('Created {} training examples'.format(4 * i))
 
 
 def create_test_set():
@@ -201,5 +210,24 @@ def create_dataset():
     create_test_set()
 
 
-def train_data_iterator():
-    pass
+def training_batches(extended_x_path, extended_y_path, batch_size=100):
+    X = []
+    Y = []
+    with open(extended_x_path, 'r') as fx, open(extended_y_path, 'r') as fy:
+        while True:
+            line = fx.readline()
+            if line == '':
+                X_matrix = np.array(X, dtype=np.uint8)
+                Y_matrix = np.array(Y, dtype=np.uint8).reshape(1, len(Y))
+                yield X_matrix.T, Y_matrix
+                return
+            x = line_to_list(line)
+            y = line_to_list(fy.readline())[0]
+            X.append(x)
+            Y.append(y)
+            if len(Y) >= batch_size:
+                X_matrix = np.array(X, dtype=np.uint8)
+                Y_matrix = np.array(Y, dtype=np.uint8).reshape(1, len(Y))
+                yield X_matrix.T, Y_matrix
+                X[:] = []
+                Y[:] = []

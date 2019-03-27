@@ -104,5 +104,36 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(expected.tolist(), res.tolist())
 
 
+class BatchGeneratorTests(unittest.TestCase):
+    def test_on_dummy_files(self):
+        from util import training_batches
+
+        extended_x_path = 'X_dummy.txt'
+        extended_y_path = 'Y_dummy.txt'
+        batches = training_batches(extended_x_path, extended_y_path, batch_size=2)
+
+        b = []
+        for batch in batches:
+            b.append(batch)
+
+        self.assertEqual(len(b), 2)
+
+        X, Y = b[0]
+        self.assertTupleEqual(X.shape, (5, 2))
+        self.assertTupleEqual(Y.shape, (1, 2))
+
+        self.assertEqual(X.tolist(), [[5, 1],
+                                      [248, 0],
+                                      [0, 0],
+                                      [0, 123],
+                                      [15, 45]])
+
+        self.assertEqual(Y.tolist(), [[8, 4]])
+
+        X, Y = b[1]
+        self.assertTupleEqual(X.shape, (5, 1))
+        self.assertTupleEqual(Y.shape, (1, 1))
+
+
 if __name__ == '__main__':
     unittest.main()
