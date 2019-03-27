@@ -64,37 +64,31 @@ def embed_noise(a, noise=50):
 
 class CoordinateSystem:
     def __init__(self, a, x0=0, y0=0):
+        assert a.ndim == 2
+
         self.a = a
         self.x0 = x0
         self.y0 = y0
 
     def map_to_coordinates(self):
-        return map_to_coordinates(self.a, self.x0, self.y0)
+        a = self.a
+
+        indices = []
+        for i in range(a.shape[0]):
+            for j in range(a.shape[1]):
+                x = j - self.x0
+                y = a.shape[0] - 1 - i
+                y -= self.y0
+                indices.append((x, y))
+
+        return np.array(indices, dtype=a.dtype).T
 
     def coordinates_to_cell(self, x, y):
-        row, col = coordinates_to_cell(x, y, self.x0, self.y0)
+        row = y + self.y0
+        col = x + self.x0
         row = self.a.shape[0] - 1 - row
+
         return row, col
-
-
-def map_to_coordinates(a, x0=0, y0=0):
-    assert a.ndim == 2
-
-    indices = []
-    for i in range(a.shape[0]):
-        for j in range(a.shape[1]):
-            x = j - x0
-            y = a.shape[0] - 1 - i
-            y -= y0
-            indices.append((x, y))
-
-    return np.array(indices, dtype=a.dtype).T
-
-
-def coordinates_to_cell(x, y, x0, y0):
-    row = y + y0
-    col = x + x0
-    return row, col
 
 
 def within_bounds(size, index):

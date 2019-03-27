@@ -96,6 +96,13 @@ class RotationTests(unittest.TestCase):
                              [0, 3, 6]])
         self.assertEqual(expected.tolist(), res.tolist())
 
+        res = rotate(a, angle=180, origin=(1, 1))
+
+        expected = np.array([[8, 7, 6],
+                             [5, 4, 3],
+                             [2, 1, 0]])
+        self.assertEqual(expected.tolist(), res.tolist())
+
 
 if __name__ == '__main__':
     unittest.main()
