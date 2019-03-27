@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from util import rotate, embed_noise, map_to_coordinates
+from util import rotate, embed_noise, CoordinateSystem
 
 
 class NoiseTests(unittest.TestCase):
@@ -29,12 +29,44 @@ class RotationTests(unittest.TestCase):
     def test_mapping_to_coordinates(self):
         a = np.array([[1, 0, 6],
                       [15, 0, 2]])
-        res = map_to_coordinates(a)
+
+        system = CoordinateSystem(a)
+        res = system.map_to_coordinates()
         expected = np.array([[0, 1, 2, 0, 1, 2],
                              [1, 1, 1, 0, 0, 0]])
 
         self.assertTupleEqual(res.shape, (2, 6))
         self.assertTrue(np.all(expected == res))
+
+    def test_mapping_with_non_standard_origin(self):
+        a = np.array([[1, 0, 6],
+                      [15, 0, 2]])
+
+        system = CoordinateSystem(a, x0=2, y0=1)
+
+        res = system.map_to_coordinates()
+        expected = np.array([[-2, -1, 0, -2, -1, 0],
+                             [0, 0, 0, -1, -1, -1]])
+
+        self.assertTupleEqual(res.shape, (2, 6))
+        self.assertTrue(np.all(expected == res))
+
+    def test_coordinates_to_cell(self):
+        a = np.array([[1, 0, 6],
+                      [15, 0, 2]])
+        system = CoordinateSystem(a, x0=2, y0=1)
+
+        row, col = system.coordinates_to_cell(-2, 0)
+        self.assertEqual(row, 0)
+        self.assertEqual(col, 0)
+
+        row, col = system.coordinates_to_cell(-1, 0)
+        self.assertEqual(row, 0)
+        self.assertEqual(col, 1)
+
+        row, col = system.coordinates_to_cell(-1, -1)
+        self.assertEqual(row, 1)
+        self.assertEqual(col, 1)
 
     def test_with_90_degrees(self):
         a = np.array([[1, 0],
@@ -43,6 +75,26 @@ class RotationTests(unittest.TestCase):
         res = rotate(a, angle=90)
 
         self.assertEqual([[25, 0], [15, 0]], res.tolist())
+
+    def test_with_without_rotation(self):
+        a = np.array([[1, 0],
+                      [15, 25]])
+
+        res = rotate(a, angle=0)
+        self.assertEqual(a.tolist(), res.tolist())
+
+        res = rotate(a, angle=360)
+        self.assertEqual(a.tolist(), res.tolist())
+
+    def test_rotate_around_the_center(self):
+        a = np.arange(9).reshape(3, 3)
+
+        res = rotate(a, angle=90, origin=(1, 1))
+
+        expected = np.array([[2, 5, 8],
+                             [1, 4, 7],
+                             [0, 3, 6]])
+        self.assertEqual(expected.tolist(), res.tolist())
 
 
 if __name__ == '__main__':
