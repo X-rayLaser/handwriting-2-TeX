@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from util import rotate, embed_noise
+from util import rotate, embed_noise, map_to_coordinates
 
 
 class NoiseTests(unittest.TestCase):
@@ -26,14 +26,23 @@ class NoiseTests(unittest.TestCase):
 
 
 class RotationTests(unittest.TestCase):
+    def test_mapping_to_coordinates(self):
+        a = np.array([[1, 0, 6],
+                      [15, 0, 2]])
+        res = map_to_coordinates(a)
+        expected = np.array([[0, 1, 2, 0, 1, 2],
+                             [1, 1, 1, 0, 0, 0]])
+
+        self.assertTupleEqual(res.shape, (2, 6))
+        self.assertTrue(np.all(expected == res))
+
     def test_with_90_degrees(self):
-        return
         a = np.array([[1, 0],
-                      [15, 0]])
+                      [15, 25]])
 
         res = rotate(a, angle=90)
 
-        self.assertEqual([[1, 15, 0, 0]], res.tolist())
+        self.assertEqual([[25, 0], [15, 0]], res.tolist())
 
 
 if __name__ == '__main__':

@@ -62,32 +62,51 @@ def embed_noise(a, noise=50):
     return np.maximum(res, 0)
 
 
+def map_to_coordinates(a):
+    assert a.ndim == 2
+
+    indices = []
+    for i in range(a.shape[0]):
+        for j in range(a.shape[1]):
+            x = j
+            y = a.shape[0] - 1 - i
+            indices.append((x, y))
+
+    return np.array(indices, dtype=a.dtype).T
+
+
+def within_bounds(size, index):
+    return index >= 0 and index < size
+
+
 def rotate(a, angle):
-    assert a.ndims == 2
+    assert a.ndim == 2
     rads = angle * np.pi / 180.0
 
     cos_phi = np.cos(rads)
     sin_phi = np.sin(rads)
     R = np.array([[cos_phi, -sin_phi],
-                  [sin_phi, -cos_phi]])
+                  [sin_phi, cos_phi]])
 
-    indices = []
-    for i in range(a.shape[0]):
-        for j in range(a.shape[1]):
-            indices.append((j, i))
+    X = map_to_coordinates(a)
 
-    X = np.array(indices).T
-
-    Xprime = np.dot(R, X)
+    X_transformed = np.zeros((2, X.shape[1]), dtype=np.int)
+    X_transformed[:, :] = np.round(np.dot(R, X))
 
     res = np.zeros_like(a)
-    for j in range(a.shape[1]):
-        col = Xprime[0, j]
-        row = Xprime[1, j]
+    for j in range(X_transformed.shape[1]):
+        pixel_val = a.reshape(a.shape[0] * a.shape[0])[j]
 
-    nelements
+        x = X_transformed[0, j]
+        y = X_transformed[1, j]
 
-    return a
+        col = x
+        row = a.shape[0] - 1 - y
+
+        if within_bounds(a.shape[0], row) and within_bounds(a.shape[1], col):
+            res[row, col] = pixel_val
+
+    return res
 
 
 def random_transformation(image):
@@ -157,3 +176,7 @@ def create_test_set():
 def create_dataset():
     create_training_set()
     create_test_set()
+
+
+def train_data_iterator():
+    pass
