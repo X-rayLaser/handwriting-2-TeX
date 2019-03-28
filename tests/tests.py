@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
 from util import rotate, embed_noise, CoordinateSystem
+from make_dataset import extend_training_set
+from util import training_batches
 
 
 class NoiseTests(unittest.TestCase):
@@ -106,8 +108,6 @@ class RotationTests(unittest.TestCase):
 
 class DataAugmentationTests(unittest.TestCase):
     def test(self):
-        from util import extend_training_set
-
         tups = []
 
         def on_example_ready(xline, yline):
@@ -132,8 +132,6 @@ class DataAugmentationTests(unittest.TestCase):
 
 class BatchGeneratorTests(unittest.TestCase):
     def test_on_dummy_files(self):
-        from util import training_batches
-
         extended_x_path = 'X_dummy.txt'
         extended_y_path = 'Y_dummy.txt'
         batches = training_batches(extended_x_path, extended_y_path, batch_size=2)
