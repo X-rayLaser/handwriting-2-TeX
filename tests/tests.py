@@ -104,6 +104,32 @@ class RotationTests(unittest.TestCase):
         self.assertEqual(expected.tolist(), res.tolist())
 
 
+class DataAugmentationTests(unittest.TestCase):
+    def test(self):
+        from util import extend_training_set
+
+        tups = []
+
+        def on_example_ready(xline, yline):
+            tups.append((xline, yline))
+
+        images = [[2] * 28**2,
+                  [5] * 28**2]
+
+        labels = [2, 20]
+        extend_training_set(images, labels, on_example_ready)
+
+        self.assertEqual(len(tups), 8)
+        xline0, yline0 = tups[0]
+        expected_x = ' '.join([str(x) for x in [2] * 28**2]) + '\n'
+        self.assertEqual(xline0, expected_x)
+        self.assertEqual(yline0, '2\n')
+
+        xline1, yline1 = tups[-1]
+        self.assertEqual(yline1, '20\n')
+        self.assertNotEqual(xline1[0], '[')
+
+
 class BatchGeneratorTests(unittest.TestCase):
     def test_on_dummy_files(self):
         from util import training_batches

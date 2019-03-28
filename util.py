@@ -163,6 +163,25 @@ def line_to_list(line):
     return [int(num) for num in line.strip().split(' ')]
 
 
+def extend_training_set(images, labels, on_example_ready):
+    for i in range(len(images)):
+        image = images[i]
+        label = labels[i]
+
+        x = list_to_line(image)
+        y = str(label) + '\n'
+        on_example_ready(x, y)
+
+        for k in range(3):
+            timage = random_transformation(image).reshape(28*28).tolist()
+            x = list_to_line(timage)
+            y = str(label) + '\n'
+            on_example_ready(x, y)
+
+        if i % 1000 == 0:
+            print('Created {} training examples'.format(4 * i))
+
+
 def create_training_set():
     from mnist import MNIST
 
@@ -172,20 +191,20 @@ def create_training_set():
     extended_x_path = os.path.join(dataset_root, 'extended_X.txt')
     extended_y_path = os.path.join(dataset_root, 'extended_Y.txt')
 
-    with open(extended_x_path, 'w') as fx, open(extended_y_path, 'w') as fy:
-        for i in range(len(images)):
-            image = images[i]
-            label = labels[i]
-            fx.write(list_to_line(image))
-            fy.write(str(label) + '\n')
+    if os.path.isfile(extended_x_path):
+        os.remove(extended_x_path)
 
-            for k in range(3):
-                timage = random_transformation(image).tolist()
-                fx.write(list_to_line(timage))
-                fy.write(str(label) + '\n')
+    if os.path.isfile(extended_y_path):
+        os.remove(extended_y_path)
 
-            if i % 1000 == 0:
-                print('Created {} training examples'.format(4 * i))
+    def on_example_ready(xline, yline):
+        with open(extended_x_path, 'a') as f:
+            f.write(xline)
+
+        with open(extended_y_path, 'a') as f:
+            f.write(yline)
+
+    extend_training_set(images[:5], labels[:5], on_example_ready)
 
 
 def create_test_set():
@@ -193,8 +212,8 @@ def create_test_set():
     mndata = MNIST(dataset_root)
     images_test, labels_test = mndata.load_testing()
 
-    test_x_path = os.path.join(dataset_root, 'extended_X.txt')
-    test_y_path = os.path.join(dataset_root, 'extended_Y.txt')
+    test_x_path = os.path.join(dataset_root, 'extended_Xtest.txt')
+    test_y_path = os.path.join(dataset_root, 'extended_Ytest.txt')
 
     with open(test_x_path, 'w') as f:
         for image in images_test:

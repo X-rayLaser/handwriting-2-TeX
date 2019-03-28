@@ -132,31 +132,6 @@ def estimate_accuracy(net, X, labels):
     )
 
 
-def shift(images, max_shift=3):
-    from util import shift_pixels_right, shift_pixels_down,\
-        shift_pixels_left, shift_pixels_up
-    print(len(images[0]))
-    extended_set = []
-
-    for im in images:
-        a = np.array(im).reshape(28*28, 1)
-        extended_set.append(im)
-
-        for k in range(1, max_shift + 1):
-            extended_set.append(shift_pixels_right(a, k))
-
-        for k in range(1, max_shift + 1):
-            extended_set.append(shift_pixels_left(a, k))
-
-        for k in range(1, max_shift + 1):
-            extended_set.append(shift_pixels_up(a, k))
-
-        for k in range(1, max_shift + 1):
-            extended_set.append(shift_pixels_down(a, k))
-
-    return extended_set
-
-
 def extract_dataset_mean(Xtrain):
     with open('mnist_info.json', 'w') as f:
         nx, m = Xtrain.shape
@@ -185,15 +160,8 @@ def train_model(learning_rate=0.001, epochs=10):
     images, labels = mndata.load_training()
     images_test, labels_test = mndata.load_testing()
 
-    from util import embed_noise
-
-    #images = shift(images, max_shift=2)
-
-    print("shifted!")
     Xtrain = np.array(images, dtype=np.uint8).T
     Xtest = np.array(images_test, dtype=np.uint8).T
-
-    print('done')
 
     extract_dataset_mean(Xtrain)
 
