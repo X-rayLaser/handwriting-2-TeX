@@ -106,6 +106,7 @@ class DigitsNet:
 
 
 def get_model():
+    return get_keras_model()
     if not os.path.isfile('mnist_model.json'):
         raise Exception('Model file not found')
 
@@ -116,6 +117,28 @@ def get_model():
     net = DigitsNet(28*28, 30, 10)
     net.restore(d)
     return net
+
+
+def get_keras_model():
+    import keras
+    from keras.layers import Dense
+    from keras.models import Sequential
+    model = Sequential()
+    model.add(Dense(units=10, activation='relu', input_dim=28 ** 2))
+    model.add(Dense(units=10, activation='softmax'))
+
+    model.load_weights('keras_model.h5')
+
+    class Predictor:
+        def predict(self, x):
+            x = x.reshape(28 ** 2, 1).T
+
+            print('SHAPE', x.shape)
+            a = model.predict(x)[0]
+            p = np.max(a)
+            return np.argmax(a), p
+
+    return Predictor()
 
 
 def estimate_accuracy(net, X, labels):
@@ -152,6 +175,43 @@ def normalize(X):
         mu = np.array(d['mu'])
 
     return (X - mu) / 255.0
+
+
+def train_keras_model(learning_rate=0.001, epochs=10):
+    from mnist import MNIST
+    import keras
+    from keras.layers import Dense
+    from keras.models import Sequential
+
+
+    mndata = MNIST('./datasets/mnist')
+    images, labels = mndata.load_training()
+    images_test, labels_test = mndata.load_testing()
+
+    Xtrain = np.array(images[:1000], dtype=np.uint8)
+    Xtest = np.array(images_test[:1000], dtype=np.uint8)
+
+    Xtrain_norm = Xtrain / 255.0
+    Xtest_norm = Xtest / 255.0
+
+    Ytrain = np.array(labels[:1000], dtype=np.uint8).reshape(1000, 1)
+    Ytest = np.array(labels_test[:1000], dtype=np.uint8).reshape(1000, 1)
+
+    Ytrain = keras.utils.to_categorical(Ytrain, num_classes=10)
+    Ytest = keras.utils.to_categorical(Ytest, num_classes=10)
+
+    model = Sequential()
+    model.add(Dense(units=10, activation='relu', input_dim=28**2))
+    model.add(Dense(units=10, activation='softmax'))
+
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='sgd',
+                  metrics=['accuracy'])
+
+    model.fit(Xtrain_norm, Ytrain, epochs=5, batch_size=32)
+
+    loss_and_metrics = model.evaluate(Xtest_norm, Ytest, batch_size=128)
+    model.save_weights('keras_model.h5')
 
 
 def train_model(learning_rate=0.001, epochs=10):
@@ -205,4 +265,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_model(args.lrate, args.epochs)
+    #train_model(args.lrate, args.epochs)
+    train_keras_model(args.lrate, args.epochs)

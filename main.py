@@ -25,12 +25,8 @@ class Recognizer(QtCore.QThread):
 
         window = pixmap[:win_size, :win_size]
         window = window.reshape(28 * 28, 1)
-        print(window)
-        print(np.max(window))
-        print(np.mean(window))
 
-
-        x = normalize(window)
+        x = window / 255.0
         digit, prob = model.predict(x)
         print(digit, prob)
         res = str(digit)
