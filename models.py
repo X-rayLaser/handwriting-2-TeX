@@ -123,7 +123,7 @@ def initialize_keras_model():
     from keras.layers import Dense, Dropout
     from keras.models import Sequential
 
-    drop_prob = 0.
+    drop_prob = 0.15
 
     model = Sequential()
     model.add(Dense(units=500, activation='relu', input_dim=28**2))
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('--lrate', type=float, default=0.003,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=30,
                         help='number of iterations')
 
     args = parser.parse_args()
