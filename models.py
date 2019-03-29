@@ -119,13 +119,24 @@ def get_model():
     return net
 
 
-def get_keras_model():
-    import keras
+def initialize_keras_model():
     from keras.layers import Dense
     from keras.models import Sequential
+
     model = Sequential()
-    model.add(Dense(units=10, activation='relu', input_dim=28 ** 2))
+    model.add(Dense(units=30, activation='relu', input_dim=28**2))
+    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=30, activation='relu'))
     model.add(Dense(units=10, activation='softmax'))
+    return model
+
+
+def get_keras_model():
+    model = initialize_keras_model()
 
     model.load_weights('keras_model.h5')
 
@@ -180,37 +191,46 @@ def normalize(X):
 def train_keras_model(learning_rate=0.001, epochs=10):
     from mnist import MNIST
     import keras
-    from keras.layers import Dense
-    from keras.models import Sequential
-
 
     mndata = MNIST('./datasets/mnist')
     images, labels = mndata.load_training()
     images_test, labels_test = mndata.load_testing()
 
-    Xtrain = np.array(images[:1000], dtype=np.uint8)
-    Xtest = np.array(images_test[:1000], dtype=np.uint8)
+    m_train = len(images)
+    m_test = len(images_test)
+    #m_train = 10000
+    #m_test = 10000
+
+    images = images[:m_train]
+    labels = labels[:m_train]
+    images_test = images_test[:m_test]
+    labels_test = labels_test[:m_test]
+
+    Xtrain = np.array(images, dtype=np.uint8)
+    Xtest = np.array(images_test, dtype=np.uint8)
 
     Xtrain_norm = Xtrain / 255.0
     Xtest_norm = Xtest / 255.0
 
-    Ytrain = np.array(labels[:1000], dtype=np.uint8).reshape(1000, 1)
-    Ytest = np.array(labels_test[:1000], dtype=np.uint8).reshape(1000, 1)
+    Ytrain = np.array(labels, dtype=np.uint8).reshape(m_train, 1)
+    Ytest = np.array(labels_test, dtype=np.uint8).reshape(m_test, 1)
 
     Ytrain = keras.utils.to_categorical(Ytrain, num_classes=10)
     Ytest = keras.utils.to_categorical(Ytest, num_classes=10)
 
-    model = Sequential()
-    model.add(Dense(units=10, activation='relu', input_dim=28**2))
-    model.add(Dense(units=10, activation='softmax'))
+    model = initialize_keras_model()
 
+    optimizer = keras.optimizers.SGD(
+        lr=learning_rate, momentum=0.9, decay=0.0, nesterov=False
+    )
     model.compile(loss='categorical_crossentropy',
-                  optimizer='sgd',
+                  optimizer=optimizer,
                   metrics=['accuracy'])
 
-    model.fit(Xtrain_norm, Ytrain, epochs=5, batch_size=32)
+    model.fit(Xtrain_norm, Ytrain, epochs=epochs, batch_size=32)
 
     loss_and_metrics = model.evaluate(Xtest_norm, Ytest, batch_size=128)
+    print(loss_and_metrics)
     model.save_weights('keras_model.h5')
 
 
@@ -257,10 +277,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Given an image, compress it using JPEG algorithm'
     )
-    parser.add_argument('--lrate', type=float, default=1.0,
+    parser.add_argument('--lrate', type=float, default=0.001,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=50,
                         help='number of iterations')
 
     args = parser.parse_args()
