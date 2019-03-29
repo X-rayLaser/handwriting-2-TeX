@@ -120,17 +120,30 @@ def get_model():
 
 
 def initialize_keras_model():
-    from keras.layers import Dense
+    from keras.layers import Dense, Dropout
     from keras.models import Sequential
 
+    drop_prob = 0.
+
     model = Sequential()
-    model.add(Dense(units=30, activation='relu', input_dim=28**2))
-    model.add(Dense(units=30, activation='relu'))
-    model.add(Dense(units=30, activation='relu'))
-    model.add(Dense(units=30, activation='relu'))
-    model.add(Dense(units=30, activation='relu'))
-    model.add(Dense(units=30, activation='relu'))
-    model.add(Dense(units=30, activation='relu'))
+    model.add(Dense(units=500, activation='relu', input_dim=28**2))
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=400, activation='relu'))
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=300, activation='relu'))
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=200, activation='relu'))
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=100, activation='relu'))
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=60, activation='relu'))
+    model.add(Dropout(drop_prob))
+
     model.add(Dense(units=10, activation='softmax'))
     return model
 
@@ -277,10 +290,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Given an image, compress it using JPEG algorithm'
     )
-    parser.add_argument('--lrate', type=float, default=0.001,
+    parser.add_argument('--lrate', type=float, default=0.003,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=50,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='number of iterations')
 
     args = parser.parse_args()
