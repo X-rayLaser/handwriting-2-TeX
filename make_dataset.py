@@ -42,7 +42,7 @@ def create_training_set():
         with open(extended_y_path, 'a') as f:
             f.write(yline)
 
-    extend_training_set(images[:5], labels[:5], on_example_ready)
+    extend_training_set(images, labels, on_example_ready)
 
 
 def create_test_set():

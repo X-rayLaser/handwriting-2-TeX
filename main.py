@@ -1,4 +1,5 @@
 import sys
+from queue import Queue
 from PyQt5 import QtCore
 from PyQt5.QtCore import QUrl
 from PyQt5.QtQml import QQmlApplicationEngine
@@ -9,50 +10,27 @@ from PyQt5.QtWebEngine import QtWebEngine
 class Recognizer(QtCore.QThread):
     completed = QtCore.pyqtSignal(str)
 
-    def __init__(self, pixels):
+    def __init__(self, jobs_queue):
         super().__init__()
-        self.pixels = pixels
+        self.jobs_queue = jobs_queue
 
     def run(self):
         from models import get_model, normalize
-        import numpy as np
-        pixmap = self.pixels
-
-        win_size = 28
-        height = pixmap.shape[0]
-        width = pixmap.shape[1]
         model = get_model()
 
-        window = pixmap[:win_size, :win_size]
-        window = window.reshape(28 * 28, 1)
+        while True:
+            pixmap = self.jobs_queue.get()
 
-        x = window / 255.0
-        digit, prob = model.predict(x)
-        print(digit, prob)
-        res = str(digit)
-        self.completed.emit(res)
+            win_size = 28
 
-        return
+            window = pixmap[:win_size, :win_size]
+            window = window.reshape(28 * 28, 1)
 
-        best_match = (0, 0)
-
-        for i in range(height - win_size + 1):
-            for j in range(width - win_size + 1):
-                window = pixmap[i:i+win_size, j:j+win_size]
-                assert window.shape[0] == 28
-                assert window.shape[1] == 28
-                window = window.reshape(28*28, 1)
-
-                x = normalize(window)
-                digit, prob = model.predict(x)
-                if prob > best_match[1]:
-                    best_match = digit, prob
-                    print(best_match)
-                print(i, j)
-
-        digit = best_match[0]
-        res = str(digit)
-        self.completed.emit(res)
+            x = window / 255.0
+            digit, prob = model.predict(x)
+            print(digit, prob)
+            res = str(digit)
+            self.completed.emit(res)
 
 
 class AppManager(QtCore.QObject):
@@ -61,7 +39,14 @@ class AppManager(QtCore.QObject):
     def __init__(self, clipboard):
         super().__init__()
         self.clipboard = clipboard
-        self.thread = None
+        self.jobs = Queue()
+        self.thread = Recognizer(self.jobs)
+
+        self.thread.completed.connect(
+            lambda res: self.predictionReady.emit(res)
+        )
+
+        self.thread.start()
 
     @QtCore.pyqtSlot(list, int, int)
     def recognize(self, pixels, width, height):
@@ -72,12 +57,7 @@ class AppManager(QtCore.QObject):
         im.save('canvas.png')
         im = Image.open('canvas.png')
         pixels = np.array([lum for alpha, lum in list(im.getdata())]).reshape(height, width)
-        self.thread = Recognizer(pixels)
-        thread = self.thread
-
-        thread.completed.connect(lambda res: self.predictionReady.emit(res))
-
-        thread.start()
+        self.jobs.put(pixels)
 
     @QtCore.pyqtSlot(str)
     def copy_to_clipboard(self, text):
