@@ -5,6 +5,37 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtGui import QGuiApplication, QClipboard
 from PyQt5.QtWebEngine import QtWebEngine
+import numpy as np
+
+
+def calculate_range(pixmap_size, win_size, start_index):
+    shift = win_size
+    max_index = pixmap_size - win_size
+    return (max(0, start_index - shift),
+            min(max_index + 1, start_index + shift))
+
+
+def pixmap_slices(pixmap, i0, j0):
+    h, w = pixmap.shape
+
+    win_size = 28
+    shift = win_size // 7
+    ifrom = max(0, i0 - shift)
+    ito = min(h - win_size + 1, i0 + shift)
+
+    jfrom = max(0, j0 - shift)
+    jto = min(w - win_size + 1, j0 + shift)
+
+    for i in range(ifrom, ito):
+        for j in range(jfrom, jto):
+            yield pixmap[i:i + win_size, j:j + win_size]
+
+
+def pinpoint_digit(pixmap):
+    a = pixmap
+    col = np.argmax(np.sum(a, axis=0))
+    row = np.argmax(np.sum(a, axis=1))
+    return row, col
 
 
 class Recognizer(QtCore.QThread):
@@ -21,16 +52,18 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            win_size = 28
+            row, col = pinpoint_digit(pixmap)
+            print(row, col)
+            X = np.zeros((9**2, 28**2))
+            i = 0
+            for window in pixmap_slices(pixmap, row, col):
+                x = window / 255.0
+                X[i, :] = x.reshape(1, 28**2)
+                i += 1
 
-            window = pixmap[:win_size, :win_size]
-            window = window
-
-            x = window / 255.0
-            digit, prob = model.predict(x)
-            print(digit, prob)
-            res = str(digit)
-            self.completed.emit(res)
+            A = model.predict(X)
+            res = np.argmax(np.max(A, axis=0))
+            self.completed.emit(str(res))
 
 
 class AppManager(QtCore.QObject):

@@ -22,14 +22,14 @@ Window {
 
 
         Rectangle {
-            width: 28
-            height: 28
+            width: parent.width
+            height: 150
             border.color: "red"
 
             Canvas {
                 id: canvas
-                width: 28
-                height: 28
+                width: parent.width
+                height: parent.height
 
                 onPaint: {
                     var ctx = getContext("2d");

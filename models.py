@@ -48,10 +48,8 @@ def get_keras_model():
 
     class Predictor:
         def predict(self, x):
-            x = x.reshape(1, 28, 28, 1)
-
-            print('SHAPE', x.shape)
-            a = model.predict(x)[0]
+            x = x.reshape(x.shape[0], 28, 28, 1)
+            return model.predict(x)
             p = np.max(a)
             return np.argmax(a), p
 
