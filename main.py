@@ -33,9 +33,24 @@ def pixmap_slices(pixmap, i0, j0):
 
 def pinpoint_digit(pixmap):
     a = pixmap
-    col = np.argmax(np.sum(a, axis=0))
-    row = np.argmax(np.sum(a, axis=1))
+    #col = np.argmax(np.sum(a, axis=0))
+    #row = np.argmax(np.sum(a, axis=1))
+    left = np.argmax(np.sum(a, axis=0) > 0)
+
+    top = np.argmax(np.sum(a, axis=1) > 0)
+
+    return top + 14, left + 14
+
     return row, col
+
+
+def visualize_slice(x):
+    from PIL import Image
+
+    t = np.zeros((28, 28), dtype=np.uint8)
+    t[:, :] = (x * 255).reshape(28, 28)
+    im = Image.frombytes('L', (28, 28), t.tobytes())
+    im.show()
 
 
 class Recognizer(QtCore.QThread):
@@ -54,14 +69,14 @@ class Recognizer(QtCore.QThread):
 
             row, col = pinpoint_digit(pixmap)
             print(row, col)
-            X = np.zeros((9**2, 28**2))
-            i = 0
-            for window in pixmap_slices(pixmap, row, col):
-                x = window / 255.0
-                X[i, :] = x.reshape(1, 28**2)
-                i += 1
 
-            A = model.predict(X)
+            x = (pixmap[row-14:row+14, col-14:col+14] / 255.0).reshape(1, 28**2)
+            visualize_slice(x)
+
+            A = model.predict(x)
+            indices = np.argmax(A, axis=0)
+            temp = np.max(A, axis=0)
+            digit = np.argmax(temp, axis=0)
             res = np.argmax(np.max(A, axis=0))
             self.completed.emit(str(res))
 
