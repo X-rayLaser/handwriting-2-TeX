@@ -1,5 +1,3 @@
-import os
-import json
 import numpy as np
 
 
@@ -50,7 +48,7 @@ def get_keras_model():
 
     class Predictor:
         def predict(self, x):
-            x = x.reshape(28 ** 2, 1).T
+            x = x.reshape(1, 28, 28, 1)
 
             print('SHAPE', x.shape)
             a = model.predict(x)[0]

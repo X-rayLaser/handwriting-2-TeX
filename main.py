@@ -15,7 +15,7 @@ class Recognizer(QtCore.QThread):
         self.jobs_queue = jobs_queue
 
     def run(self):
-        from models import get_model, normalize
+        from models import get_model
         model = get_model()
 
         while True:
@@ -24,7 +24,7 @@ class Recognizer(QtCore.QThread):
             win_size = 28
 
             window = pixmap[:win_size, :win_size]
-            window = window.reshape(28 * 28, 1)
+            window = window
 
             x = window / 255.0
             digit, prob = model.predict(x)
