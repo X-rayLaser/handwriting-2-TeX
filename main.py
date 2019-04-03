@@ -33,15 +33,13 @@ def pixmap_slices(pixmap, i0, j0):
 
 def pinpoint_digit(pixmap):
     a = pixmap
-    #col = np.argmax(np.sum(a, axis=0))
-    #row = np.argmax(np.sum(a, axis=1))
     left = np.argmax(np.sum(a, axis=0) > 0)
+    right = left + np.argmin(np.sum(a, axis=0)[left:] > 0)
 
     top = np.argmax(np.sum(a, axis=1) > 0)
+    bottom = top + np.argmin(np.sum(a, axis=1)[top:] > 0)
 
-    return top + 14, left + 14
-
-    return row, col
+    return int(round((top + bottom) / 2.0)), int(round((left + right) / 2))
 
 
 def visualize_slice(x):
@@ -68,17 +66,13 @@ class Recognizer(QtCore.QThread):
             pixmap = self.jobs_queue.get()
 
             row, col = pinpoint_digit(pixmap)
-            print(row, col)
 
             x = (pixmap[row-14:row+14, col-14:col+14] / 255.0).reshape(1, 28**2)
-            visualize_slice(x)
+            #visualize_slice(x)
 
             A = model.predict(x)
-            indices = np.argmax(A, axis=0)
-            temp = np.max(A, axis=0)
-            digit = np.argmax(temp, axis=0)
-            res = np.argmax(np.max(A, axis=0))
-            self.completed.emit(str(res))
+            digit = np.argmax(np.max(A, axis=0), axis=0)
+            self.completed.emit(str(digit))
 
 
 class AppManager(QtCore.QObject):
