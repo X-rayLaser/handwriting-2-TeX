@@ -13,9 +13,10 @@ def augmented_dataset_generator(images, labels, batch_size=32):
     datagen = ImageDataGenerator(
         featurewise_center=False,
         featurewise_std_normalization=False,
-        rotation_range=15,
-        width_shift_range=5,
-        height_shift_range=5,
+        rotation_range=8,
+        width_shift_range=4,
+        height_shift_range=4,
+        zoom_range=0.25,
         horizontal_flip=False)
 
     datagen.fit(x_train)

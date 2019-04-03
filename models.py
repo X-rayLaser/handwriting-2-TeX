@@ -6,10 +6,10 @@ def get_model():
 
 
 def initialize_keras_model():
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, GaussianNoise
     from keras.models import Sequential
 
-    drop_prob = 0.1
+    drop_prob = 0.05
 
     model = Sequential()
     model.add(Flatten(input_shape=(28, 28, 1)))
@@ -50,8 +50,6 @@ def get_keras_model():
         def predict(self, x):
             x = x.reshape(x.shape[0], 28, 28, 1)
             return model.predict(x)
-            p = np.max(a)
-            return np.argmax(a), p
 
     return Predictor()
 
@@ -118,7 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--lrate', type=float, default=0.001,
                         help='learning rate')
 
-    parser.add_argument('--epochs', type=int, default=30,
+    parser.add_argument('--epochs', type=int, default=60,
                         help='number of iterations')
 
     args = parser.parse_args()
