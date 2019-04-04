@@ -42,6 +42,47 @@ def pinpoint_digit(pixmap):
     return int(round((top + bottom) / 2.0)), int(round((left + right) / 2))
 
 
+def contains_digit(pixmap):
+    return np.sum(pixmap) > 10000
+
+
+def extract_x(pixmap, row, col):
+    return (pixmap[row - 14:row + 14, col - 14:col + 14] / 255.0).reshape(1, 28 ** 2)
+
+
+def locate_digits(pixmap):
+    h, w = pixmap.shape
+    midy = int(round(h / 2))
+    midx = int(round(w / 2))
+    top_left = pixmap[:midy, :midx]
+    top_right = pixmap[:midy, midx:]
+    bottom_left = pixmap[midy:, :midx]
+    bottom_right = pixmap[midy:, midx:]
+
+    locations = []
+    if contains_digit(top_left):
+        row, col = pinpoint_digit(top_left)
+        locations.append((row, col))
+
+    if contains_digit(top_right):
+        row, col = pinpoint_digit(top_right)
+        col += midx
+        locations.append((row, col))
+
+    if contains_digit(bottom_left):
+        row, col = pinpoint_digit(bottom_left)
+        row += midy
+        locations.append((row, col))
+
+    if contains_digit(bottom_right):
+        row, col = pinpoint_digit(bottom_right)
+        row += midy
+        col += midx
+        locations.append((row, col))
+
+    return locations
+
+
 def visualize_slice(x):
     from PIL import Image
 
@@ -65,14 +106,17 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            row, col = pinpoint_digit(pixmap)
+            locations = locate_digits(pixmap)
 
-            x = (pixmap[row-14:row+14, col-14:col+14] / 255.0).reshape(1, 28**2)
-            #visualize_slice(x)
+            res = ''
+            for row, col in locations:
+                x = extract_x(pixmap, row, col)
+                A = model.predict(x)
+                digit = np.argmax(np.max(A, axis=0), axis=0)
+                res = res + ' ' + str(digit)
 
-            A = model.predict(x)
-            digit = np.argmax(np.max(A, axis=0), axis=0)
-            self.completed.emit(str(digit))
+            if res:
+                self.completed.emit(res)
 
 
 class AppManager(QtCore.QObject):
