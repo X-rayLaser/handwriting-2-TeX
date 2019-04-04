@@ -50,36 +50,21 @@ def extract_x(pixmap, row, col):
     return (pixmap[row - 14:row + 14, col - 14:col + 14] / 255.0).reshape(1, 28 ** 2)
 
 
-def locate_digits(pixmap):
+def locate_digits(pixmap, max_cells):
     h, w = pixmap.shape
-    midy = int(round(h / 2))
-    midx = int(round(w / 2))
-    top_left = pixmap[:midy, :midx]
-    top_right = pixmap[:midy, midx:]
-    bottom_left = pixmap[midy:, :midx]
-    bottom_right = pixmap[midy:, midx:]
+    hor_cell_size = int(round(w / max_cells))
+    vert_cell_size = int(round(h / max_cells))
 
     locations = []
-    if contains_digit(top_left):
-        row, col = pinpoint_digit(top_left)
-        locations.append((row, col))
 
-    if contains_digit(top_right):
-        row, col = pinpoint_digit(top_right)
-        col += midx
-        locations.append((row, col))
-
-    if contains_digit(bottom_left):
-        row, col = pinpoint_digit(bottom_left)
-        row += midy
-        locations.append((row, col))
-
-    if contains_digit(bottom_right):
-        row, col = pinpoint_digit(bottom_right)
-        row += midy
-        col += midx
-        locations.append((row, col))
-
+    for y in range(0, h, vert_cell_size):
+        for x in range(0, w, hor_cell_size):
+            slice = pixmap[y:y + vert_cell_size, x:x + hor_cell_size]
+            if contains_digit(slice):
+                row, col = pinpoint_digit(slice)
+                row += y
+                col += x
+                locations.append((row, col))
     return locations
 
 
@@ -106,7 +91,7 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            locations = locate_digits(pixmap)
+            locations = locate_digits(pixmap, max_cells=4)
 
             res = ''
             for row, col in locations:
