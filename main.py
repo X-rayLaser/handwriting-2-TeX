@@ -8,29 +8,6 @@ from PyQt5.QtWebEngine import QtWebEngine
 import numpy as np
 
 
-def calculate_range(pixmap_size, win_size, start_index):
-    shift = win_size
-    max_index = pixmap_size - win_size
-    return (max(0, start_index - shift),
-            min(max_index + 1, start_index + shift))
-
-
-def pixmap_slices(pixmap, i0, j0):
-    h, w = pixmap.shape
-
-    win_size = 28
-    shift = win_size // 7
-    ifrom = max(0, i0 - shift)
-    ito = min(h - win_size + 1, i0 + shift)
-
-    jfrom = max(0, j0 - shift)
-    jto = min(w - win_size + 1, j0 + shift)
-
-    for i in range(ifrom, ito):
-        for j in range(jfrom, jto):
-            yield pixmap[i:i + win_size, j:j + win_size]
-
-
 def pinpoint_digit(pixmap):
     a = pixmap
     left = np.argmax(np.sum(a, axis=0) > 0)
@@ -42,33 +19,11 @@ def pinpoint_digit(pixmap):
     return int(round((top + bottom) / 2.0)), int(round((left + right) / 2))
 
 
-def contains_digit(pixmap):
-    return np.sum(pixmap) > 10000
-
-
 def extract_x(pixmap, row, col):
     h, w = pixmap.shape
     row = min(h - 14 - 1, max(14, row))
     col = min(w - 14 - 1, max(14, col))
     return (pixmap[row - 14:row + 14, col - 14:col + 14] / 255.0).reshape(1, 28 ** 2)
-
-
-def locate_digits(pixmap, max_cells):
-    h, w = pixmap.shape
-    hor_cell_size = int(round(w / max_cells))
-    vert_cell_size = int(round(h / max_cells))
-
-    locations = []
-
-    for y in range(0, h, vert_cell_size):
-        for x in range(0, w, hor_cell_size):
-            slice = pixmap[y:y + vert_cell_size, x:x + hor_cell_size]
-            if contains_digit(slice):
-                row, col = pinpoint_digit(slice)
-                row += y
-                col += x
-                locations.append((row, col))
-    return locations
 
 
 def smooth(a, beta_p=0.9):
@@ -90,43 +45,14 @@ def smooth(a, beta_p=0.9):
     return res
 
 
-def locate_digits_with_graph_processing(pixmap):
+def locate_digits(pixmap):
     import networkx as nx
-    G = nx.Graph()
 
     h, w = pixmap.shape
-    n = h * w
-
-    def index_to_point(index):
-        x = index % w
-        y = index // w
-        return x, y
-
-    def point_to_index(x, y):
-        return y * w + x
-
-    G.add_nodes_from(list(range(n)))
 
     sm = smooth(pixmap, 0.5)
 
-    for i in range(h):
-        for j in range(w):
-            plain_index = point_to_index(x=j, y=i)
-            pixel = sm[i, j]
-
-            if i != 0:
-                pixel_above = sm[i - 1, j]
-                plain_index_above = point_to_index(j, i - 1)
-
-                if pixel * pixel_above > 1:
-                    G.add_edge(plain_index, plain_index_above)
-
-            if j != 0:
-                left_pixel = sm[i, j - 1]
-                plain_left_index = point_to_index(j - 1, i)
-
-                if pixel * left_pixel > 1:
-                    G.add_edge(plain_index, plain_left_index)
+    G = build_graph(sm)
 
     locations = []
     digit_drawings = [component for component in nx.connected_components(G)
@@ -141,6 +67,40 @@ def locate_digits_with_graph_processing(pixmap):
 
         locations.append(pinpoint_digit(a))
     return locations
+
+
+def build_graph(pixel_matrix):
+    import networkx as nx
+    G = nx.Graph()
+
+    h, w = pixel_matrix.shape
+    n = h * w
+
+    def point_to_index(x, y):
+        return y * w + x
+
+    G.add_nodes_from(list(range(n)))
+
+    for i in range(h):
+        for j in range(w):
+            plain_index = point_to_index(x=j, y=i)
+            pixel = pixel_matrix[i, j]
+
+            if i != 0:
+                pixel_above = pixel_matrix[i - 1, j]
+                plain_index_above = point_to_index(j, i - 1)
+
+                if pixel * pixel_above > 1:
+                    G.add_edge(plain_index, plain_index_above)
+
+            if j != 0:
+                left_pixel = pixel_matrix[i, j - 1]
+                plain_left_index = point_to_index(j - 1, i)
+
+                if pixel * left_pixel > 1:
+                    G.add_edge(plain_index, plain_left_index)
+
+    return G
 
 
 def visualize_slice(x):
@@ -166,7 +126,7 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            locations = locate_digits_with_graph_processing(pixmap)
+            locations = locate_digits(pixmap)
 
             res = ''
             for row, col in locations:
