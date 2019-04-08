@@ -112,6 +112,10 @@ def visualize_slice(x):
     im.show()
 
 
+def sort_locations(locations):
+    pass
+
+
 class Recognizer(QtCore.QThread):
     completed = QtCore.pyqtSignal(str)
 
@@ -127,6 +131,8 @@ class Recognizer(QtCore.QThread):
             pixmap = self.jobs_queue.get()
 
             locations = locate_digits(pixmap)
+
+            locations.sort()
 
             res = ''
             for row, col in locations:
