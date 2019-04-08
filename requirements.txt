@@ -5,3 +5,4 @@ Pillow
 python-mnist
 tensorflow<2.0
 keras
+networkx

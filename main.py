@@ -47,6 +47,9 @@ def contains_digit(pixmap):
 
 
 def extract_x(pixmap, row, col):
+    h, w = pixmap.shape
+    row = min(h - 14 - 1, max(14, row))
+    col = min(w - 14 - 1, max(14, col))
     return (pixmap[row - 14:row + 14, col - 14:col + 14] / 255.0).reshape(1, 28 ** 2)
 
 
@@ -65,6 +68,87 @@ def locate_digits(pixmap, max_cells):
                 row += y
                 col += x
                 locations.append((row, col))
+    return locations
+
+
+def smooth(a, beta_p=0.9):
+    res = np.zeros_like(a)
+    beta = np.ones(a.shape[0]) * beta_p
+    for i in range(a.shape[0]):
+        prev = 0
+        for j in range(a.shape[1]):
+            prev = beta[i] * prev + (1 - beta[i]) * a[i, j]
+            res[i, j] = prev
+
+    for j in range(a.shape[1]):
+        prev = 0
+
+        for i in range(a.shape[0]):
+            prev = beta[i] * prev + (1 - beta[i]) * res[i, j]
+            res[i, j] = prev
+
+    return res
+
+
+def locate_digits_with_graph_processing(pixmap):
+    import networkx as nx
+    from util import connect_components
+    G = nx.Graph()
+
+    h, w = pixmap.shape
+    n = h * w
+
+    def index_to_point(index):
+        x = index % w
+        y = index // w
+        return x, y
+
+    def point_to_index(x, y):
+        return y * w + x
+
+    G.add_nodes_from(list(range(n)))
+
+    sm = smooth(pixmap, 0.5)
+
+    for i in range(h):
+        for j in range(w):
+            plain_index = point_to_index(x=j, y=i)
+            pixel = sm[i, j]
+
+            if i != 0:
+                pixel_above = sm[i - 1, j]
+                plain_index_above = point_to_index(j, i - 1)
+
+                if pixel * pixel_above > 1:
+                    G.add_edge(plain_index, plain_index_above)
+
+            if j != 0:
+                left_pixel = sm[i, j - 1]
+                plain_left_index = point_to_index(j - 1, i)
+
+                if pixel * left_pixel > 1:
+                    G.add_edge(plain_index, plain_left_index)
+
+    locations = []
+    digit_drawings = [component for component in nx.connected_components(G)
+                      if len(component) > 1]
+
+    drawings = connect_components(digit_drawings, index_to_point, point_to_index)
+
+    print(len(drawings))
+
+    for drawing in drawings:
+        a = np.zeros((h, w), dtype=np.uint8)
+
+        temp = np.zeros(w * h, dtype=np.bool)
+        temp[list(drawing)] = True
+        a[:, :] = sm * temp.reshape(h, w)
+
+        from PIL import Image
+        im = Image.frombytes('L', (w, h), a.tobytes())
+        im.show()
+
+        locations.append(pinpoint_digit(a))
     return locations
 
 
@@ -91,7 +175,7 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            locations = locate_digits(pixmap, max_cells=4)
+            locations = locate_digits_with_graph_processing(pixmap)
 
             res = ''
             for row, col in locations:
