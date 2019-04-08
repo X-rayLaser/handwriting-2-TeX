@@ -92,7 +92,6 @@ def smooth(a, beta_p=0.9):
 
 def locate_digits_with_graph_processing(pixmap):
     import networkx as nx
-    from util import connect_components
     G = nx.Graph()
 
     h, w = pixmap.shape
@@ -133,20 +132,12 @@ def locate_digits_with_graph_processing(pixmap):
     digit_drawings = [component for component in nx.connected_components(G)
                       if len(component) > 1]
 
-    drawings = connect_components(digit_drawings, index_to_point, point_to_index)
-
-    print(len(drawings))
-
-    for drawing in drawings:
+    for drawing in digit_drawings:
         a = np.zeros((h, w), dtype=np.uint8)
 
         temp = np.zeros(w * h, dtype=np.bool)
         temp[list(drawing)] = True
         a[:, :] = sm * temp.reshape(h, w)
-
-        from PIL import Image
-        im = Image.frombytes('L', (w, h), a.tobytes())
-        im.show()
 
         locations.append(pinpoint_digit(a))
     return locations
