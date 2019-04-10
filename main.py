@@ -119,10 +119,10 @@ class RecognizedNumber:
 
     def is_power_of(self, number):
         threshold = 28
-        dx = number.right_most_x - self.left_most_x
+        dx = number.left_most_x - self.right_most_x
         dy = self.y - number.y
 
-        return dx > -8 and dx < threshold and dy > 20
+        return dx > -8 and dx < threshold and dy > 20 and dy < 40
 
     @property
     def number(self):
@@ -134,7 +134,7 @@ class RecognizedNumber:
 
     @property
     def left_most_x(self):
-        return max([x for x, y in self._locations])
+        return min([x for x, y in self._locations])
 
     @property
     def y(self):
@@ -240,7 +240,8 @@ class Recognizer(QtCore.QThread):
                 a = numbers[i]
                 b = numbers[j]
                 if a.is_power_of(b):
-                    pows.append('{}^{{{}}}'.format(a.number, b.number))
+                    p = '{}^{{{}}}'.format(a.number, b.number)
+                    pows.append(p)
                     numbers_in_pow.add(a.number)
                     numbers_in_pow.add(b.number)
 
@@ -264,8 +265,6 @@ class Recognizer(QtCore.QThread):
 
             if numbers:
                 pows_string = self.recognize_powers(numbers)
-                print(pows_string)
-                #str_numbers = [str(num.number) for num in numbers]
                 self.completed.emit(pows_string)
 
 
