@@ -112,16 +112,55 @@ def visualize_slice(x):
     im.show()
 
 
-def sort_locations(locations):
-    pass
-
-
 class Recognizer(QtCore.QThread):
     completed = QtCore.pyqtSignal(str)
 
     def __init__(self, jobs_queue):
         super().__init__()
         self.jobs_queue = jobs_queue
+
+    def recognize_digits(self, pixmap, model):
+        locations = locate_digits(pixmap)
+
+        res = []
+
+        for row, col in locations:
+            x = extract_x(pixmap, row, col)
+            A = model.predict(x)
+            digit = np.argmax(np.max(A, axis=0), axis=0)
+            res.append((digit, row, col))
+
+        return res
+
+    def recognize_numbers(self, digits):
+        sorted_digits = sorted(digits, key=lambda t: t[2])
+
+        digit, prev_y, prev_x = sorted_digits[0]
+
+        numbers = []
+
+        current_number = str(digit)
+
+        for i in range(1, len(sorted_digits)):
+            digit, row, col = sorted_digits[i]
+
+            d = np.sqrt((col - prev_x) ** 2 + (row - prev_y) ** 2)
+
+            dy = row - prev_y
+            dx = col - prev_x
+            phi = np.arctan(dy / dx)
+
+            if d < 50 and abs(phi) < np.pi / 16:
+                current_number += str(digit)
+            else:
+                numbers.append(int(current_number))
+                current_number = str(digit)
+
+            prev_x = col
+            prev_y = row
+
+        numbers.append(int(current_number))
+        return numbers
 
     def run(self):
         from models import get_model
@@ -130,19 +169,15 @@ class Recognizer(QtCore.QThread):
         while True:
             pixmap = self.jobs_queue.get()
 
-            locations = locate_digits(pixmap)
+            digits = self.recognize_digits(pixmap, model)
 
-            locations.sort()
+            if not digits:
+                continue
+            numbers = self.recognize_numbers(digits)
 
-            res = ''
-            for row, col in locations:
-                x = extract_x(pixmap, row, col)
-                A = model.predict(x)
-                digit = np.argmax(np.max(A, axis=0), axis=0)
-                res = res + ' ' + str(digit)
-
-            if res:
-                self.completed.emit(res)
+            if numbers:
+                str_numbers = [str(num) for num in numbers]
+                self.completed.emit(' '.join(str_numbers))
 
 
 class AppManager(QtCore.QObject):
