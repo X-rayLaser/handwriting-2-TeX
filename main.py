@@ -50,7 +50,7 @@ def locate_digits(pixmap):
 
     h, w = pixmap.shape
 
-    sm = smooth(pixmap, 0.5)
+    sm = smooth(pixmap, 0.3)
 
     G = build_graph(sm)
 
@@ -110,6 +110,39 @@ def visualize_slice(x):
     t[:, :] = (x * 255).reshape(28, 28)
     im = Image.frombytes('L', (28, 28), t.tobytes())
     im.show()
+
+
+class RecognizedNumber:
+    def __init__(self):
+        self._digits = ''
+        self._locations = []
+
+    def is_power_of(self, number):
+        threshold = 28
+        dx = number.right_most_x - self.left_most_x
+        dy = self.y - number.y
+
+        return dx > -8 and dx < threshold and dy > 20
+
+    @property
+    def number(self):
+        return int(self._digits)
+
+    @property
+    def right_most_x(self):
+        return max([x for x, y in self._locations])
+
+    @property
+    def left_most_x(self):
+        return max([x for x, y in self._locations])
+
+    @property
+    def y(self):
+        return np.mean(np.array([y for x, y in self._locations]))
+
+    def add(self, digit, x, y):
+        self._digits += digit
+        self._locations.append((x, y))
 
 
 class Recognizer(QtCore.QThread):
@@ -172,7 +205,9 @@ class Recognizer(QtCore.QThread):
         remaining = list(digits)
         remaining.reverse()
         digit, row, col = remaining.pop()
-        current_number = str(digit)
+
+        current_number = RecognizedNumber()
+        current_number.add(str(digit), col, row)
         while remaining:
             res = self.nearest_neighbor(remaining, col, row)
 
@@ -181,7 +216,7 @@ class Recognizer(QtCore.QThread):
 
             neighbor, row, col = res
             remaining.remove((neighbor, row, col))
-            current_number += str(neighbor)
+            current_number.add(str(neighbor), col, row)
 
         return current_number, remaining
 
@@ -197,6 +232,23 @@ class Recognizer(QtCore.QThread):
             if not rem:
                 return numbers
 
+    def recognize_powers(self, numbers):
+        pows = []
+        numbers_in_pow = set()
+        for i in range(len(numbers)):
+            for j in range(len(numbers)):
+                a = numbers[i]
+                b = numbers[j]
+                if a.is_power_of(b):
+                    pows.append('{}^{{{}}}'.format(a.number, b.number))
+                    numbers_in_pow.add(a.number)
+                    numbers_in_pow.add(b.number)
+
+        rest = [str(n.number) for n in numbers if n.number not in numbers_in_pow]
+
+        res = pows + rest
+        return ' '.join(res)
+
     def run(self):
         from models import get_model
         model = get_model()
@@ -211,8 +263,10 @@ class Recognizer(QtCore.QThread):
             numbers = self.recognize_numbers(digits)
 
             if numbers:
-                str_numbers = [str(num) for num in numbers]
-                self.completed.emit(' '.join(str_numbers))
+                pows_string = self.recognize_powers(numbers)
+                print(pows_string)
+                #str_numbers = [str(num.number) for num in numbers]
+                self.completed.emit(pows_string)
 
 
 class AppManager(QtCore.QObject):
