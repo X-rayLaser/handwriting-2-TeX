@@ -132,35 +132,70 @@ class Recognizer(QtCore.QThread):
 
         return res
 
+    def nearest_neighbor(self, digits, x, y):
+        filtered = []
+        remaining = []
+        for digit, row, col in digits:
+            if abs(self._phi(x, y, col, row)) < np.pi / 8:
+                filtered.append((digit, row, col))
+            else:
+                remaining.append((digit, row, col))
+
+        def distance(triple):
+            digit, row, col = triple
+            return self._distance(x, y, col, row)
+
+        sorted_digits = sorted(filtered, key=distance, reverse=True)
+        if not sorted_digits:
+            return
+
+        first_digit, row, col = sorted_digits.pop()
+        if self._are_neighbors(x, y, col, row):
+            return first_digit, row, col
+
+    def _are_neighbors(self, x1, y1, x2, y2):
+        d = self._distance(x1, y1, x2, y2)
+        phi = self._phi(x1, y1, x2, y2)
+
+        return d < 50 and abs(phi) < np.pi / 16
+
+    def _distance(self, x1, y1, x2, y2):
+        return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+    def _phi(self, x1, y1, x2, y2):
+        dy = y2 - y1
+        dx = x2 - x1
+        epsilon = 10 ** (-8)
+        return np.arctan(dy / (dx + epsilon))
+
+    def recognize_number(self, digits):
+        remaining = list(digits)
+        remaining.reverse()
+        digit, row, col = remaining.pop()
+        current_number = str(digit)
+        while remaining:
+            res = self.nearest_neighbor(remaining, col, row)
+
+            if res is None:
+                return current_number, remaining
+
+            neighbor, row, col = res
+            remaining.remove((neighbor, row, col))
+            current_number += str(neighbor)
+
+        return current_number, remaining
+
     def recognize_numbers(self, digits):
-        sorted_digits = sorted(digits, key=lambda t: t[2])
-
-        digit, prev_y, prev_x = sorted_digits[0]
-
         numbers = []
 
-        current_number = str(digit)
+        rem = list(digits)
+        while True:
+            sorted_digits = sorted(rem, key=lambda t: (t[2], t[1]))
 
-        for i in range(1, len(sorted_digits)):
-            digit, row, col = sorted_digits[i]
-
-            d = np.sqrt((col - prev_x) ** 2 + (row - prev_y) ** 2)
-
-            dy = row - prev_y
-            dx = col - prev_x
-            phi = np.arctan(dy / dx)
-
-            if d < 50 and abs(phi) < np.pi / 16:
-                current_number += str(digit)
-            else:
-                numbers.append(int(current_number))
-                current_number = str(digit)
-
-            prev_x = col
-            prev_y = row
-
-        numbers.append(int(current_number))
-        return numbers
+            number, rem = self.recognize_number(sorted_digits)
+            numbers.append(number)
+            if not rem:
+                return numbers
 
     def run(self):
         from models import get_model
