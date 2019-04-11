@@ -99,13 +99,13 @@ class UnidentifiedObject:
 def extract_segments(pixmap):
     locations = locate_digits(pixmap)
 
-    boxes = []
+    segments = []
     for row, col in locations:
-        box = extract_box(pixmap, row, col)
+        box = extract_segment(pixmap, row, col)
         segment = UnidentifiedObject(box, x=col, y=row)
-        boxes.append(segment)
+        segments.append(segment)
 
-    return boxes
+    return segments
 
 
 def visualize_slice(x):
@@ -117,7 +117,7 @@ def visualize_slice(x):
     im.show()
 
 
-def extract_box(pixmap, row, col):
+def extract_segment(pixmap, row, col):
     h, w = pixmap.shape
     row = min(h - 14 - 1, max(14, row))
     col = min(w - 14 - 1, max(14, col))

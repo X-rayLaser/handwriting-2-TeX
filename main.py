@@ -8,6 +8,7 @@ from PyQt5.QtWebEngine import QtWebEngine
 import numpy as np
 from segmentation import extract_segments
 from construction import LatexBuilder
+from building_blocks import Digit
 
 
 def recognize(segments, model):
@@ -17,7 +18,7 @@ def recognize(segments, model):
         x = prepare_input(segment)
         A = model.predict(x)
         digit = np.argmax(np.max(A, axis=0), axis=0)
-        res.append((digit, segment.y, segment.x))
+        res.append(Digit(digit, segment.x, segment.y))
 
     return res
 

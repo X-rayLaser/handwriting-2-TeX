@@ -1,37 +1,5 @@
 import numpy as np
-
-
-class RecognizedNumber:
-    def __init__(self):
-        self._digits = ''
-        self._locations = []
-
-    def is_power_of(self, number):
-        threshold = 28
-        dx = number.left_most_x - self.right_most_x
-        dy = self.y - number.y
-
-        return dx > -8 and dx < threshold and dy > 20 and dy < 40
-
-    @property
-    def number(self):
-        return int(self._digits)
-
-    @property
-    def right_most_x(self):
-        return max([x for x, y in self._locations])
-
-    @property
-    def left_most_x(self):
-        return min([x for x, y in self._locations])
-
-    @property
-    def y(self):
-        return np.mean(np.array([y for x, y in self._locations]))
-
-    def add(self, digit, x, y):
-        self._digits += digit
-        self._locations.append((x, y))
+from building_blocks import RecognizedNumber
 
 
 class LatexBuilder:
@@ -41,26 +9,27 @@ class LatexBuilder:
         if numbers:
             return self.recognize_powers(numbers)
 
-    def _nearest_neighbor(self, digits, x, y):
+    def _nearest_neighbor(self, digits, current_digit):
+        x = current_digit.x
+        y = current_digit.y
         filtered = []
         remaining = []
-        for digit, row, col in digits:
-            if abs(self._phi(x, y, col, row)) < np.pi / 8:
-                filtered.append((digit, row, col))
+        for digit_segment in digits:
+            if abs(self._phi(x, y, digit_segment.x, digit_segment.y)) < np.pi / 8:
+                filtered.append(digit_segment)
             else:
-                remaining.append((digit, row, col))
+                remaining.append(digit_segment)
 
-        def distance(triple):
-            digit, row, col = triple
-            return self._distance(x, y, col, row)
+        def distance(digit_segment):
+            return self._distance(x, y, digit_segment.x, digit_segment.y)
 
         sorted_digits = sorted(filtered, key=distance, reverse=True)
         if not sorted_digits:
             return
 
-        first_digit, row, col = sorted_digits.pop()
-        if self._are_neighbors(x, y, col, row):
-            return first_digit, row, col
+        first_digit = sorted_digits.pop()
+        if self._are_neighbors(x, y, first_digit.x, first_digit.y):
+            return first_digit
 
     def _are_neighbors(self, x1, y1, x2, y2):
         d = self._distance(x1, y1, x2, y2)
@@ -80,19 +49,18 @@ class LatexBuilder:
     def recognize_number(self, digits):
         remaining = list(digits)
         remaining.reverse()
-        digit, row, col = remaining.pop()
+        digit = remaining.pop()
 
         current_number = RecognizedNumber()
-        current_number.add(str(digit), col, row)
+        current_number.add(digit)
         while remaining:
-            res = self._nearest_neighbor(remaining, col, row)
+            digit = self._nearest_neighbor(remaining, digit)
 
-            if res is None:
+            if digit is None:
                 return current_number, remaining
 
-            neighbor, row, col = res
-            remaining.remove((neighbor, row, col))
-            current_number.add(str(neighbor), col, row)
+            remaining.remove(digit)
+            current_number.add(digit)
 
         return current_number, remaining
 
@@ -101,7 +69,7 @@ class LatexBuilder:
 
         rem = list(digits)
         while True:
-            sorted_digits = sorted(rem, key=lambda t: (t[2], t[1]))
+            sorted_digits = sorted(rem, key=lambda digit: (digit.x, digit.y))
 
             number, rem = self.recognize_number(sorted_digits)
             numbers.append(number)
