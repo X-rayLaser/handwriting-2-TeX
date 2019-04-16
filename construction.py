@@ -7,7 +7,8 @@ class LatexBuilder:
         numbers = self.recognize_numbers(segments)
 
         if numbers:
-            return self.recognize_powers(numbers)
+            pows = self.recognize_powers(numbers)
+            return ' '.join(pows)
 
     def _nearest_neighbor(self, digits, current_digit):
         x = current_digit.x
@@ -92,4 +93,200 @@ class LatexBuilder:
         rest = [str(n.number) for n in numbers if n.number not in numbers_in_pow]
 
         res = pows + rest
-        return ' '.join(res)
+        return res
+
+
+class RectangularRegion:
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.w = width
+        self.h = height
+
+    def subregion(self, x0, y0, x, y):
+        pass
+
+    def subregion_above(self, y):
+        pass
+
+    def subregion_below(self, y):
+        pass
+
+    def left_subregion(self, x):
+        pass
+
+    def right_subregion(self, y):
+        pass
+
+    def subregion_from(self, x0, y0):
+        pass
+
+    def subregion_upto(self, x, y):
+        pass
+
+    def __contains__(self, item):
+        pass
+
+
+class MathSegment:
+    def __init__(self):
+        self.x = 3
+        self.y = 4
+        self.width = 12
+        self.height = 9
+
+    def get_difference(self, segment):
+        pass
+
+    def get_sum(self, segment):
+        pass
+
+    def get_fraction(self, segment):
+        pass
+
+    def get_product(self, segment):
+        pass
+
+    def get_power(self, segment):
+        pass
+
+    @property
+    def latex(self):
+        return ''
+
+
+class Reducer:
+    def reduce(self, segments, region):
+        res = []
+        remaining_segments = list(segments)
+        while remaining_segments:
+            operator_segment = self.next_math_operator(remaining_segments, region)
+            if operator_segment is None:
+                break
+
+            first_subregion, second_subregion = self.get_subregions(operator_segment, region)
+            first_segment_list = self.segments_of_region(remaining_segments, first_subregion)
+            second_segment_list = self.segments_of_region(remaining_segments, second_subregion)
+
+            first_operand = construct(first_segment_list, region=first_subregion)
+            second_operand = construct(second_segment_list, region=second_subregion)
+
+            res.append(self.apply_operation(first_operand, second_operand))
+
+            for seg in first_segment_list:
+                remaining_segments.remove(seg)
+
+            for seg in second_segment_list:
+                remaining_segments.remove(seg)
+
+            self.remove_operator(remaining_segments, operator_segment)
+
+        res.extend(remaining_segments)
+        return res
+
+    def segments_of_region(self, segments, region):
+        return [seg for seg in segments if seg in region]
+
+    def next_math_operator(self, segments, region):
+        raise NotImplementedError
+
+    def get_subregions(self, operator_segment, region):
+        raise NotImplementedError
+
+    def apply_operation(self, op1, op2):
+        raise NotImplementedError
+
+    def remove_operator(self, segments, operator_segment):
+        segments.remove(operator_segment)
+
+
+class HorizontalReducer(Reducer):
+    def get_subregions(self, operator_segment, region):
+        left_one = region.left_subregion(operator_segment.x)
+        right_one = region.right_subregion(operator_segment.x)
+        return left_one, right_one
+
+
+class FractionReducer(Reducer):
+    def find_longest_division_line(self, segments):
+        return MathSegment()
+
+    def next_math_operator(self, segments, region):
+        return self.find_longest_division_line(segments)
+
+    def get_subregions(self, operator_segment, region):
+        numerator_subregion = region.subregion_above(operator_segment.y)
+        denominator_subregion = region.subregion_below(operator_segment.y)
+        return numerator_subregion, denominator_subregion
+
+    def apply_operation(self, op1, op2):
+        return op1.get_fraction(op2)
+
+
+class ProductReducer(HorizontalReducer):
+
+    def find_next_product_sign(self, segments, region):
+        return MathSegment()
+
+    def next_math_operator(self, segments, region):
+        return self.find_next_product_sign(segments, region)
+
+    def apply_operation(self, op1, op2):
+        return op1.get_product(op2)
+
+
+class SumReducer(HorizontalReducer):
+    def next_math_operator(self, segments, region):
+        return find_next_addition_sign(segments)
+
+    def apply_operation(self, op1, op2):
+        return op1.get_difference(op2)
+
+
+class DifferenceReducer(HorizontalReducer):
+    def next_math_operator(self, segments, region):
+        return find_next_substraction_sign(segments)
+
+    def apply_operation(self, op1, op2):
+        return op1.get_sum(op2)
+
+
+def get_powers(segments, region):
+    builder = LatexBuilder()
+    numbers = builder.recognize_numbers(segments)
+    return builder.recognize_powers(numbers)
+
+
+def get_fractions(segments, region):
+    reducer = FractionReducer()
+    return reducer.reduce(segments, region)
+
+
+def get_sums(segments, region=None):
+    reducer = SumReducer()
+    return reducer.reduce(segments, region)
+
+
+def get_differences(segments, region):
+    reducer = DifferenceReducer()
+    return reducer.reduce(segments, region)
+
+
+def get_products(segments, region):
+    reducer = ProductReducer()
+    return reducer.reduce(segments, region)
+
+
+def construct_latex(segments, width, height):
+    region = RectangularRegion(0, 0, width, height)
+    result = construct(segments, region)
+    return result.latex()
+
+
+def construct(segments, region):
+    segments = get_powers(segments, region)
+    segments = get_fractions(segments, region)
+    segments = get_sums(segments, region)
+    segments = get_differences(segments, region)
+    segments = get_products(segments, region)
+    return segments[0]
