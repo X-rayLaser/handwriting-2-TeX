@@ -72,5 +72,107 @@ class ConnectChainsTests(unittest.TestCase):
                          set([(245, 246), (248, 247), (252, 252), (253, 252)]))
 
 
+class SubregionAboveTests(unittest.TestCase):
+    def test_subregion_above_normal_case(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_above(y=50)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 20)
+
+    def test_subregion_above_gives_whole_region(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_above(y=150)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 40)
+
+    def test_subregion_above_produces_zero_area_region(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_above(y=20)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 0)
+
+
+class SubregionBelowTests(unittest.TestCase):
+    def test_subregion_below_normal_case(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_below(y=40)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 40)
+        self.assertEqual(subregion.height, 30)
+
+    def test_subregion_below_gives_whole_region(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_below(y=10)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 40)
+
+    def test_subregion_below_produces_zero_area_region(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+
+        subregion = region.subregion_below(y=100)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 50)
+        self.assertEqual(subregion.y, 70)
+        self.assertEqual(subregion.height, 0)
+
+
+class LeftSubregionTests(unittest.TestCase):
+    def test_typical_case(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+        subregion = region.left_subregion(40)
+
+        self.assertEqual(subregion.x, 20)
+        self.assertEqual(subregion.width, 20)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 40)
+
+
+class RightSubregionTests(unittest.TestCase):
+    def test_typical_case(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+        subregion = region.right_subregion(40)
+
+        self.assertEqual(subregion.x, 40)
+        self.assertEqual(subregion.width, 30)
+        self.assertEqual(subregion.y, 30)
+        self.assertEqual(subregion.height, 40)
+
+
 if __name__ == '__main__':
     unittest.main()

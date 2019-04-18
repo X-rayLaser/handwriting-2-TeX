@@ -41,6 +41,26 @@ def initialize_keras_model():
     return model
 
 
+def initialize_math_recognition_model():
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization
+    from keras.models import Sequential
+
+    drop_prob = 0.05
+
+    model = Sequential()
+    model.add(Flatten(input_shape=(45, 45, 1)))
+    model.add(Dense(units=10, activation='relu', kernel_initializer='he_normal'))
+    model.add(BatchNormalization())
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=10, activation='relu', kernel_initializer='he_normal'))
+    model.add(BatchNormalization())
+    model.add(Dropout(drop_prob))
+
+    model.add(Dense(units=14, activation='softmax'))
+    return model
+
+
 def get_keras_model():
     model = initialize_keras_model()
 
@@ -59,7 +79,7 @@ def norm_generator(gen):
         yield x_batch / 255.0, y_batch
 
 
-def train_keras_model(learning_rate=0.001, epochs=10):
+def train_mnist_model(learning_rate=0.001, epochs=10):
     from mnist import MNIST
     import keras
     from util import augmented_dataset_generator
@@ -107,7 +127,64 @@ def train_keras_model(learning_rate=0.001, epochs=10):
     model.save_weights('keras_model.h5')
 
 
+def preload_batches(gen, batch_size, m):
+    nbatches = int(m / batch_size)
+
+    batches = []
+
+    for x_batch, y_batch in gen:
+        print('batches_preloaded', len(batches), '/', nbatches)
+        if len(batches) >= nbatches:
+            break
+        batches.append((x_batch, y_batch))
+
+    return batches
+
+
+def preloaded_generator(gen, batch_size, m):
+    batches = preload_batches(gen, batch_size, m)
+
+    for batch in batches:
+        yield batch
+
+
+def train_math_recognition_model():
+    import keras
+    import os
+
+    batch_size = 1024
+    batch_size_val = 1024
+    m_train = 149618.0
+    m_val = 7867
+
+    model = initialize_math_recognition_model()
+
+    model.compile(optimizer='adam', loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    gen = keras.preprocessing.image.ImageDataGenerator(validation_split=0.05)
+    dir_path = os.path.join('datasets', 'digits_and_operators')
+    train_gen = gen.flow_from_directory(
+        directory=dir_path, target_size=(45, 45),
+        color_mode='grayscale', subset='training',
+        batch_size=batch_size
+    )
+    validation_gen = gen.flow_from_directory(
+        directory=dir_path, target_size=(45, 45),
+        color_mode='grayscale', subset='validation',
+        batch_size=batch_size_val
+    )
+
+    train_gen = preloaded_generator(train_gen, batch_size, m_train)
+    model.fit_generator(train_gen,
+                        steps_per_epoch=int(m_train / batch_size), epochs=1)
+    res = model.evaluate_generator(validation_gen, steps=int(m_val / batch_size_val))
+    print(res)
+
+
 if __name__ == '__main__':
+    import keras
+
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -121,4 +198,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_keras_model(args.lrate, args.epochs)
+    #train_keras_model(args.lrate, args.epochs)
+    train_math_recognition_model()

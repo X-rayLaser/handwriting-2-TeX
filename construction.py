@@ -96,65 +96,6 @@ class LatexBuilder:
         return res
 
 
-class RectangularRegion:
-    def __init__(self, x, y, width, height):
-        self.x = x
-        self.y = y
-        self.w = width
-        self.h = height
-
-    def subregion(self, x0, y0, x, y):
-        pass
-
-    def subregion_above(self, y):
-        pass
-
-    def subregion_below(self, y):
-        pass
-
-    def left_subregion(self, x):
-        pass
-
-    def right_subregion(self, y):
-        pass
-
-    def subregion_from(self, x0, y0):
-        pass
-
-    def subregion_upto(self, x, y):
-        pass
-
-    def __contains__(self, item):
-        pass
-
-
-class MathSegment:
-    def __init__(self):
-        self.x = 3
-        self.y = 4
-        self.width = 12
-        self.height = 9
-
-    def get_difference(self, segment):
-        pass
-
-    def get_sum(self, segment):
-        pass
-
-    def get_fraction(self, segment):
-        pass
-
-    def get_product(self, segment):
-        pass
-
-    def get_power(self, segment):
-        pass
-
-    @property
-    def latex(self):
-        return ''
-
-
 class Reducer:
     def reduce(self, segments, region):
         res = []
@@ -201,6 +142,11 @@ class Reducer:
 
 
 class HorizontalReducer(Reducer):
+    def any_operator_segment(self, f, segments):
+        for segment in segments:
+            if f(segment):
+                return segment
+
     def get_subregions(self, operator_segment, region):
         left_one = region.left_subregion(operator_segment.x)
         right_one = region.right_subregion(operator_segment.x)
@@ -209,7 +155,14 @@ class HorizontalReducer(Reducer):
 
 class FractionReducer(Reducer):
     def find_longest_division_line(self, segments):
-        return MathSegment()
+        divlen = 0
+        longest_segment = None
+        for segment in segments:
+            if segment.is_division_sign() and segment.width > divlen:
+                divlen = segment.width
+                longest_segment = segment
+
+        return longest_segment
 
     def next_math_operator(self, segments, region):
         return self.find_longest_division_line(segments)
@@ -224,12 +177,10 @@ class FractionReducer(Reducer):
 
 
 class ProductReducer(HorizontalReducer):
-
-    def find_next_product_sign(self, segments, region):
-        return MathSegment()
-
     def next_math_operator(self, segments, region):
-        return self.find_next_product_sign(segments, region)
+        return self.any_operator_segment(
+            lambda seg: seg.is_product_sign(), segments
+        )
 
     def apply_operation(self, op1, op2):
         return op1.get_product(op2)
@@ -237,7 +188,9 @@ class ProductReducer(HorizontalReducer):
 
 class SumReducer(HorizontalReducer):
     def next_math_operator(self, segments, region):
-        return find_next_addition_sign(segments)
+        return self.any_operator_segment(
+            lambda seg: seg.is_plus_sign(), segments
+        )
 
     def apply_operation(self, op1, op2):
         return op1.get_difference(op2)
@@ -245,7 +198,9 @@ class SumReducer(HorizontalReducer):
 
 class DifferenceReducer(HorizontalReducer):
     def next_math_operator(self, segments, region):
-        return find_next_substraction_sign(segments)
+        return self.any_operator_segment(
+            lambda seg: seg.is_minus_sign(), segments
+        )
 
     def apply_operation(self, op1, op2):
         return op1.get_sum(op2)
