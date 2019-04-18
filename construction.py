@@ -1,5 +1,5 @@
 import numpy as np
-from building_blocks import RecognizedNumber
+from building_blocks import RecognizedNumber, RectangularRegion, MathSegment
 
 
 class LatexBuilder:
@@ -7,7 +7,7 @@ class LatexBuilder:
         numbers = self.recognize_numbers(segments)
 
         if numbers:
-            pows = self.recognize_powers(numbers)
+            pows = [pow.latex for pow in self.recognize_powers(numbers)]
             return ' '.join(pows)
 
     def _nearest_neighbor(self, digits, current_digit):
@@ -85,12 +85,19 @@ class LatexBuilder:
                 a = numbers[i]
                 b = numbers[j]
                 if a.is_power_of(b):
-                    p = '{}^{{{}}}'.format(a.number, b.number)
+                    # todo: more robust way to calculate region
+
+                    region = RectangularRegion(
+                        x=a.left_most_x, y=a.y,
+                        width=b.right_most_x - a.left_most_x,
+                        height=28*2
+                    )
+                    p = MathSegment(region=region, latex='{}^{{{}}}'.format(a.number, b.number))
                     pows.append(p)
                     numbers_in_pow.add(a.number)
                     numbers_in_pow.add(b.number)
 
-        rest = [str(n.number) for n in numbers if n.number not in numbers_in_pow]
+        rest = [MathSegment(region=None, latex='{}'.format(n.number)) for n in numbers if n.number not in numbers_in_pow]
 
         res = pows + rest
         return res
@@ -234,12 +241,16 @@ def get_products(segments, region):
 
 def construct_latex(segments, width, height):
     region = RectangularRegion(0, 0, width, height)
+
+    # todo: move this line back to construct function
+    segments = get_powers(segments, region)
     result = construct(segments, region)
     return result.latex()
 
 
 def construct(segments, region):
-    segments = get_powers(segments, region)
+    # todo: make line below work
+    #segments = get_powers(segments, region)
     segments = get_fractions(segments, region)
     segments = get_sums(segments, region)
     segments = get_differences(segments, region)
