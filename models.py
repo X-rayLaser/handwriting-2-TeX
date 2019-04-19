@@ -42,18 +42,36 @@ def initialize_keras_model():
 
 
 def initialize_math_recognition_model():
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Conv2D, MaxPool2D
     from keras.models import Sequential
 
-    drop_prob = 0.05
+    drop_prob = 0.1
 
     model = Sequential()
-    model.add(Flatten(input_shape=(45, 45, 1)))
-    model.add(Dense(units=10, activation='relu', kernel_initializer='he_normal'))
+    model.add(Conv2D(input_shape=(45, 45, 1), filters=6, kernel_size=(5, 5),
+                     kernel_initializer='he_normal', activation='relu'))
+    model.add(BatchNormalization())
+
+    model.add(Conv2D(filters=12, kernel_size=(5, 5),
+                     kernel_initializer='he_normal', activation='relu'))
+    model.add(MaxPool2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+
+    model.add(Conv2D(filters=24, kernel_size=(3, 3),
+                     kernel_initializer='he_normal', activation='relu'))
+    model.add(BatchNormalization())
+
+    model.add(Conv2D(filters=24, kernel_size=(3, 3),
+                     kernel_initializer='he_normal', activation='relu'))
+    model.add(MaxPool2D(pool_size=(2, 2)))
+    model.add(BatchNormalization())
+
+    model.add(Flatten())
+    model.add(Dense(units=50, activation='relu', kernel_initializer='he_normal'))
     model.add(BatchNormalization())
     model.add(Dropout(drop_prob))
 
-    model.add(Dense(units=10, activation='relu', kernel_initializer='he_normal'))
+    model.add(Dense(units=50, activation='relu', kernel_initializer='he_normal'))
     model.add(BatchNormalization())
     model.add(Dropout(drop_prob))
 
@@ -127,27 +145,6 @@ def train_mnist_model(learning_rate=0.001, epochs=10):
     model.save_weights('keras_model.h5')
 
 
-def preload_batches(gen, batch_size, m):
-    nbatches = int(m / batch_size)
-
-    batches = []
-
-    for x_batch, y_batch in gen:
-        print('batches_preloaded', len(batches), '/', nbatches)
-        if len(batches) >= nbatches:
-            break
-        batches.append((x_batch, y_batch))
-
-    return batches
-
-
-def preloaded_generator(gen, batch_size, m):
-    batches = preload_batches(gen, batch_size, m)
-
-    for batch in batches:
-        yield batch
-
-
 def train_math_recognition_model():
     import os
     from dataset_utils import dataset_generator, dataset_size, load_dataset
@@ -172,7 +169,14 @@ def train_math_recognition_model():
     train_gen = dataset_generator(x, labels, mini_batch_size=batch_size)
 
     model.fit_generator(train_gen,
-                        steps_per_epoch=int(m_train / batch_size), epochs=10)
+                        steps_per_epoch=int(m_train / batch_size), epochs=2)
+
+    x_dev, labels_dev = load_dataset(dev_path)
+
+    dev_gen = dataset_generator(x_dev, labels_dev, mini_batch_size=batch_size)
+    res = model.evaluate_generator(dev_gen, steps=int(m_val / batch_size))
+    print(res)
+    model.save_weights('math_symbols_model.h5')
 
 
 if __name__ == '__main__':
