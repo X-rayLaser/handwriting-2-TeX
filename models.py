@@ -149,37 +149,30 @@ def preloaded_generator(gen, batch_size, m):
 
 
 def train_math_recognition_model():
-    import keras
     import os
+    from dataset_utils import dataset_generator, dataset_size, load_dataset
 
-    batch_size = 1024
-    batch_size_val = 1024
-    m_train = 149618.0
-    m_val = 7867
+    dir_path = os.path.join('datasets', 'digits_and_operators_csv')
+    train_path = os.path.join(dir_path, 'train')
+    dev_path = os.path.join(dir_path, 'dev')
+
+    batch_size = 128
+    m_train, _ = dataset_size(train_path)
+    m_val, _ = dataset_size(dev_path)
+    print('NUMBER OF TRAINING EXAMPLES', m_train)
+    print('NUMBER OF DEV EXAMPLES', m_val)
 
     model = initialize_math_recognition_model()
 
     model.compile(optimizer='adam', loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    gen = keras.preprocessing.image.ImageDataGenerator(validation_split=0.05)
-    dir_path = os.path.join('datasets', 'digits_and_operators')
-    train_gen = gen.flow_from_directory(
-        directory=dir_path, target_size=(45, 45),
-        color_mode='grayscale', subset='training',
-        batch_size=batch_size
-    )
-    validation_gen = gen.flow_from_directory(
-        directory=dir_path, target_size=(45, 45),
-        color_mode='grayscale', subset='validation',
-        batch_size=batch_size_val
-    )
+    x, labels = load_dataset(train_path)
 
-    train_gen = preloaded_generator(train_gen, batch_size, m_train)
+    train_gen = dataset_generator(x, labels, mini_batch_size=batch_size)
+
     model.fit_generator(train_gen,
-                        steps_per_epoch=int(m_train / batch_size), epochs=1)
-    res = model.evaluate_generator(validation_gen, steps=int(m_val / batch_size_val))
-    print(res)
+                        steps_per_epoch=int(m_train / batch_size), epochs=10)
 
 
 if __name__ == '__main__':
