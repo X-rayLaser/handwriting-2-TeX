@@ -92,6 +92,18 @@ def get_keras_model():
     return Predictor()
 
 
+def get_math_symbols_model():
+    model = initialize_math_recognition_model()
+    model.load_weights('math_symbols_model.h5')
+
+    class Predictor:
+        def predict(self, x):
+            x = x.reshape(x.shape[0], 45, 45, 1)
+            return model.predict(x)
+
+    return Predictor()
+
+
 def norm_generator(gen):
     for x_batch, y_batch in gen:
         yield x_batch / 255.0, y_batch

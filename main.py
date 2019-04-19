@@ -9,6 +9,11 @@ import numpy as np
 from segmentation import extract_segments
 from construction import LatexBuilder
 from building_blocks import Digit
+import config
+from dataset_utils import index_to_class
+
+
+image_size = config.image_size
 
 
 def recognize(segments, model):
@@ -17,15 +22,17 @@ def recognize(segments, model):
     for segment in segments:
         x = prepare_input(segment)
         A = model.predict(x)
-        digit = np.argmax(np.max(A, axis=0), axis=0)
-        res.append(Digit(digit, segment.x, segment.y))
+        class_index = np.argmax(np.max(A, axis=0), axis=0)
+
+        category_class = index_to_class[class_index]
+        res.append(Digit(category_class, segment.x, segment.y))
 
     return res
 
 
 def prepare_input(segment):
     x = segment.pixels / 255.0
-    return x.reshape(1, 28 ** 2)
+    return x.reshape(1, image_size, image_size, 1)
 
 
 class Recognizer(QtCore.QThread):
@@ -47,9 +54,9 @@ class Recognizer(QtCore.QThread):
         return latex.generate_latex(digits)
 
     def run(self):
-        from models import get_model
+        from models import get_math_symbols_model
 
-        model = get_model()
+        model = get_math_symbols_model()
 
         while True:
             pixmap = self.jobs_queue.get()

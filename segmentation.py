@@ -1,4 +1,8 @@
 import numpy as np
+import config
+
+
+image_size = config.image_size
 
 
 def pinpoint_digit(pixmap):
@@ -111,14 +115,22 @@ def extract_segments(pixmap):
 def visualize_slice(x):
     from PIL import Image
 
-    t = np.zeros((28, 28), dtype=np.uint8)
-    t[:, :] = (x * 255).reshape(28, 28)
-    im = Image.frombytes('L', (28, 28), t.tobytes())
+    t = np.zeros((image_size, image_size), dtype=np.uint8)
+    t[:, :] = (x * 255).reshape(image_size, image_size)
+    im = Image.frombytes('L', (image_size, image_size), t.tobytes())
     im.show()
 
 
 def extract_segment(pixmap, row, col):
     h, w = pixmap.shape
-    row = min(h - 14 - 1, max(14, row))
-    col = min(w - 14 - 1, max(14, col))
-    return pixmap[row - 14:row + 14, col - 14:col + 14]
+
+    half_size = image_size // 2
+
+    row = min(h - half_size - 1, max(half_size, row))
+    col = min(w - half_size - 1, max(half_size, col))
+
+    if half_size * 2 < image_size:
+        delta = 1
+    else:
+        delta = 0
+    return pixmap[row - half_size:row + half_size + delta, col - half_size:col + half_size + delta]

@@ -25,7 +25,7 @@ class_to_index = OrderedDict([
     ('div', 13)
 ])
 
-index_to_class = class_to_index.keys()
+index_to_class = list(class_to_index.keys())
 
 
 def examples_of_category(csv_files_dir, fname):

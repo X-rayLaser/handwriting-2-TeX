@@ -1,5 +1,9 @@
 import numpy as np
 from building_blocks import RecognizedNumber, RectangularRegion, MathSegment
+import config
+
+
+image_size = config.image_size
 
 
 class LatexBuilder:
@@ -90,7 +94,7 @@ class LatexBuilder:
                     region = RectangularRegion(
                         x=a.left_most_x, y=a.y,
                         width=b.right_most_x - a.left_most_x,
-                        height=28*2
+                        height=image_size*2
                     )
                     p = MathSegment(region=region, latex='{}^{{{}}}'.format(a.number, b.number))
                     pows.append(p)
