@@ -152,7 +152,7 @@ class LeftSubregionTests(unittest.TestCase):
     def test_typical_case(self):
         from construction import RectangularRegion
 
-        region = RectangularRegion(x=20, y=30, width=50, height=40)
+        region = RectangularRegion(x=20, y=30, width=120, height=40)
         subregion = region.left_subregion(40)
 
         self.assertEqual(subregion.x, 20)

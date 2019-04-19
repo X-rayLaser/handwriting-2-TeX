@@ -43,10 +43,14 @@ class Recognizer(QtCore.QThread):
         self.jobs_queue = jobs_queue
 
     def construct_latex(self, pixmap, model):
+        from construction import construct_latex
         latex = LatexBuilder()
 
         segments = extract_segments(pixmap)
+
         digits = recognize(segments, model)
+
+        return construct_latex(digits, pixmap.shape[1], pixmap.shape[0])
 
         if not digits:
             return ''

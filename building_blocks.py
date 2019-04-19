@@ -7,6 +7,9 @@ class Digit:
         self.x = x
         self.y = y
 
+    def is_digit(self):
+        return self.digit not in ['+', '-', 'times', 'div']
+
 
 class RecognizedNumber:
     def __init__(self):
@@ -42,6 +45,20 @@ class RecognizedNumber:
         y = digit_block.y
         self._locations.append((x, y))
 
+    @property
+    def region(self):
+        width = abs(self.right_most_x - self.left_most_x)
+        import config
+        height = config.image_size
+        x = self.left_most_x + width / 2
+        y = self.y
+
+        return RectangularRegion(
+            x=x, y=y,
+            width=width,
+            height=height
+        )
+
 
 class RectangularRegion:
     def __init__(self, x, y, width, height):
@@ -74,7 +91,6 @@ class RectangularRegion:
         from shapely.geometry import box
 
         new_box = box(x0, y0, x, y).intersection(self.rectbox)
-
         x0, y0, x, y = new_box.bounds
         width = x - x0
         height = y - y0
@@ -102,11 +118,12 @@ class RectangularRegion:
     def __contains__(self, segment):
         from shapely.geometry import box
 
-        b = box(segment.x, segment.y, segment.x + segment.width, segment.y + segment.height)
+        region = segment.region
+        b = box(region.x, region.y, region.x + region.width, region.y + region.height)
         return b.within(self.rectbox)
 
     def concatenate(self, segment):
-        x0, y0, x, y = segment.rectbox.bounds
+        x0, y0, x, y = segment.region.rectbox.bounds
         xleft = min(x0, self.x)
         xright = max(x, self.x + self.width)
 
