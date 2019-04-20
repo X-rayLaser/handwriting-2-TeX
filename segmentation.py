@@ -1,6 +1,6 @@
 import numpy as np
 import config
-
+from building_blocks import RectangularRegion
 
 image_size = config.image_size
 
@@ -13,7 +13,14 @@ def pinpoint_digit(pixmap):
     top = np.argmax(np.sum(a, axis=1) > 0)
     bottom = top + np.argmin(np.sum(a, axis=1)[top:] > 0)
 
-    return int(round((top + bottom) / 2.0)), int(round((left + right) / 2))
+    y = int(round((top + bottom) / 2.0))
+    x = int(round((left + right) / 2))
+
+    width = right - left
+    height = bottom - top
+    assert width > 0
+    assert height > 0
+    return RectangularRegion(x, y, width, height)
 
 
 def smooth(a, beta_p=0.9):
@@ -44,7 +51,7 @@ def locate_digits(pixmap):
 
     G = build_graph(sm)
 
-    locations = []
+    bounding_boxes = []
     digit_drawings = [component for component in nx.connected_components(G)
                       if len(component) > 1]
 
@@ -55,8 +62,8 @@ def locate_digits(pixmap):
         temp[list(drawing)] = True
         a[:, :] = sm * temp.reshape(h, w)
 
-        locations.append(pinpoint_digit(a))
-    return locations
+        bounding_boxes.append(pinpoint_digit(a))
+    return bounding_boxes
 
 
 def build_graph(pixel_matrix):
@@ -94,19 +101,18 @@ def build_graph(pixel_matrix):
 
 
 class UnidentifiedObject:
-    def __init__(self, pixels, x, y):
+    def __init__(self, pixels, bounding_box):
         self.pixels = pixels
-        self.x = x
-        self.y = y
+        self.bounding_box = bounding_box
 
 
 def extract_segments(pixmap):
-    locations = locate_digits(pixmap)
+    bounding_boxes = locate_digits(pixmap)
 
     segments = []
-    for row, col in locations:
-        box = extract_segment(pixmap, row, col)
-        segment = UnidentifiedObject(box, x=col, y=row)
+    for box in bounding_boxes:
+        canvas_slice = extract_segment_center(pixmap, int(box.y), int(box.x))
+        segment = UnidentifiedObject(canvas_slice, box)
         segments.append(segment)
 
     return segments
@@ -121,7 +127,16 @@ def visualize_slice(x):
     im.show()
 
 
-def extract_segment(pixmap, row, col):
+def extract_segment(pixmap, bounding_box):
+    x0 = int(round(bounding_box.x - bounding_box.width / 2.0))
+    y0 = int(round(bounding_box.y - bounding_box.height / 2.0))
+    x = x0 + bounding_box.width
+    y = y0 + bounding_box.height
+
+    return pixmap[y0:y, x0:x]
+
+
+def extract_segment_center(pixmap, row, col):
     h, w = pixmap.shape
 
     half_size = image_size // 2

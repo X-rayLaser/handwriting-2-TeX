@@ -79,7 +79,9 @@ class LatexBuilder:
             number, rem = self.recognize_number(sorted_digits)
             numbers.append(number)
             if not rem:
-                return numbers
+                break
+        
+        return numbers
 
     def recognize_powers(self, numbers):
         pows = []
@@ -169,8 +171,8 @@ class FractionReducer(Reducer):
         divlen = 0
         longest_segment = None
         for segment in segments:
-            if segment.is_division_sign() and segment.width > divlen:
-                divlen = segment.width
+            if segment.is_division_sign() and segment.region.width > divlen:
+                divlen = segment.region.width
                 longest_segment = segment
 
         return longest_segment

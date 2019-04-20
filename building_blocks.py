@@ -149,12 +149,12 @@ class MathSegment:
 
     def get_fraction(self, segment):
         region = self.region.concatenate(segment)
-        latex = '\frac{}{}'.format(self.latex, segment.latex)
+        latex = '\\frac{}{}'.format(self.latex, segment.latex)
         return MathSegment(region=region, latex=latex)
 
     def get_product(self, segment):
         region = self.region.concatenate(segment)
-        latex = '{} {}'.format(self.latex, segment.latex)
+        latex = '{} * {}'.format(self.latex, segment.latex)
         return MathSegment(region=region, latex=latex)
 
     def get_power(self, segment):

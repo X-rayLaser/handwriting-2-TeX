@@ -20,12 +20,15 @@ def recognize(segments, model):
     res = []
 
     for segment in segments:
-        x = prepare_input(segment)
-        A = model.predict(x)
-        class_index = np.argmax(np.max(A, axis=0), axis=0)
+        if segment.bounding_box.width > 60:
+            res.append(Digit('div', segment.bounding_box.x, segment.bounding_box.y))
+        else:
+            x = prepare_input(segment)
+            A = model.predict(x)
+            class_index = np.argmax(np.max(A, axis=0), axis=0)
 
-        category_class = index_to_class[class_index]
-        res.append(Digit(category_class, segment.x, segment.y))
+            category_class = index_to_class[class_index]
+            res.append(Digit(category_class, segment.bounding_box.x, segment.bounding_box.y))
 
     return res
 
@@ -44,18 +47,11 @@ class Recognizer(QtCore.QThread):
 
     def construct_latex(self, pixmap, model):
         from construction import construct_latex
-        latex = LatexBuilder()
-
         segments = extract_segments(pixmap)
 
         digits = recognize(segments, model)
 
         return construct_latex(digits, pixmap.shape[1], pixmap.shape[0])
-
-        if not digits:
-            return ''
-
-        return latex.generate_latex(digits)
 
     def run(self):
         from models import get_math_symbols_model
