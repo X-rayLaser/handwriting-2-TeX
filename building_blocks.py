@@ -50,8 +50,8 @@ class RecognizedNumber:
         width = abs(self.right_most_x - self.left_most_x)
         import config
         height = config.image_size
-        x = self.left_most_x + width / 2
-        y = self.y
+        x = self.left_most_x - config.image_size / 2.0
+        y = self.y - height / 2.0
 
         return RectangularRegion(
             x=x, y=y,
@@ -63,9 +63,13 @@ class RecognizedNumber:
 class RectangularRegion:
     def __init__(self, x, y, width, height):
         from shapely.geometry import box
-        # todo: treat x, y as coordinates of center, calculate
-        # coordinates of top-left and bottom-right corners
         self.rectbox = box(x, y, x + width, y + height)
+
+    @property
+    def xy_center(self):
+        x = self.x + self.width / 2.0
+        y = self.y + self.height / 2.0
+        return x, y
 
     @property
     def x(self):
@@ -149,7 +153,7 @@ class MathSegment:
 
     def get_fraction(self, segment):
         region = self.region.concatenate(segment)
-        latex = '\\frac{}{}'.format(self.latex, segment.latex)
+        latex = '\\frac{{{}}}{{{}}}'.format(self.latex, segment.latex)
         return MathSegment(region=region, latex=latex)
 
     def get_product(self, segment):

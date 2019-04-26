@@ -13,8 +13,8 @@ def pinpoint_digit(pixmap):
     top = np.argmax(np.sum(a, axis=1) > 0)
     bottom = top + np.argmin(np.sum(a, axis=1)[top:] > 0)
 
-    y = int(round((top + bottom) / 2.0))
-    x = int(round((left + right) / 2))
+    y = int(round(top))
+    x = int(round(left))
 
     width = right - left
     height = bottom - top
@@ -111,7 +111,8 @@ def extract_segments(pixmap):
 
     segments = []
     for box in bounding_boxes:
-        canvas_slice = extract_segment_center(pixmap, int(box.y), int(box.x))
+        x, y = box.xy_center
+        canvas_slice = extract_segment_center(pixmap, int(y), int(x))
         segment = UnidentifiedObject(canvas_slice, box)
         segments.append(segment)
 

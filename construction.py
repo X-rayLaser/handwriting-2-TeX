@@ -80,7 +80,7 @@ class LatexBuilder:
             numbers.append(number)
             if not rem:
                 break
-        
+
         return numbers
 
     def recognize_powers(self, numbers):
@@ -94,9 +94,9 @@ class LatexBuilder:
                     # todo: more robust way to calculate region
 
                     region = RectangularRegion(
-                        x=a.left_most_x, y=a.y,
+                        x=a.left_most_x - image_size / 2.0, y=a.y - image_size / 2.0,
                         width=b.right_most_x - a.left_most_x,
-                        height=image_size*2
+                        height=image_size * 2
                     )
                     p = MathSegment(region=region, latex='{}^{{{}}}'.format(a.number, b.number))
                     pows.append(p)
@@ -267,8 +267,10 @@ def construct_latex(segments, width, height):
             else:
                 raise Exception('WOooowoow! digit is {}'.format(seg.digit))
 
+            top_left_x = seg.x - image_size / 2.0
+            top_left_y = seg.y - image_size / 2.0
             sign_segments.append(cls_name(
-                region=RectangularRegion(seg.x, seg.y, image_size, image_size)
+                region=RectangularRegion(top_left_x, top_left_y, image_size, image_size)
             ))
 
     result = construct(power_segments + sign_segments, region)

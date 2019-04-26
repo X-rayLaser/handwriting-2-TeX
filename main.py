@@ -20,15 +20,17 @@ def recognize(segments, model):
     res = []
 
     for segment in segments:
+        x, y = segment.bounding_box.xy_center
+
         if segment.bounding_box.width > 60:
-            res.append(Digit('div', segment.bounding_box.x, segment.bounding_box.y))
+            res.append(Digit('div', x, y))
         else:
-            x = prepare_input(segment)
-            A = model.predict(x)
+            input = prepare_input(segment)
+            A = model.predict(input)
             class_index = np.argmax(np.max(A, axis=0), axis=0)
 
             category_class = index_to_class[class_index]
-            res.append(Digit(category_class, segment.bounding_box.x, segment.bounding_box.y))
+            res.append(Digit(category_class, x, y))
 
     return res
 
