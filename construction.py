@@ -256,6 +256,8 @@ def construct_latex(segments, width, height):
     from building_blocks import DivisionOperator, AdditionOperator, DifferenceOperator, ProductOperator
     for seg in segments:
         if not seg.is_digit():
+            width = image_size
+            height = image_size
             if seg.digit == '+':
                 cls_name = AdditionOperator
             elif seg.digit == '-':
@@ -264,13 +266,14 @@ def construct_latex(segments, width, height):
                 cls_name = ProductOperator
             elif seg.digit == 'div':
                 cls_name = DivisionOperator
+                height = 5
             else:
                 raise Exception('WOooowoow! digit is {}'.format(seg.digit))
 
-            top_left_x = seg.x - image_size / 2.0
-            top_left_y = seg.y - image_size / 2.0
+            top_left_x = seg.x - width / 2.0
+            top_left_y = seg.y - height / 2.0
             sign_segments.append(cls_name(
-                region=RectangularRegion(top_left_x, top_left_y, image_size, image_size)
+                region=RectangularRegion(top_left_x, top_left_y, width, height)
             ))
 
     result = construct(power_segments + sign_segments, region)
