@@ -1,6 +1,6 @@
 import unittest
 from util import connect_chains, ChainOfPoints, chains_sorted_by_distance
-from building_blocks import Digit
+from building_blocks import Primitive
 from construction import construct_latex
 
 
@@ -178,21 +178,22 @@ class RightSubregionTests(unittest.TestCase):
 
 class LatexConstructionTests(unittest.TestCase):
     def test_with_single_digit(self):
-        segments = [Digit('7', 225, 340)]
+
+        segments = [Primitive.new_primitive('7', 225, 340)]
         latex = construct_latex(segments=segments, width=500, height=500)
         self.assertEqual(latex, '7')
 
     def test_with_number(self):
-        segments = [Digit('7', 225, 340),
-                    Digit('3', 260, 342),
-                    Digit('8', 300, 338)]
+        segments = [Primitive.new_primitive('7', 225, 340),
+                    Primitive.new_primitive('3', 260, 342),
+                    Primitive.new_primitive('8', 300, 338)]
         latex = construct_latex(segments=segments, width=500, height=500)
         self.assertEqual(latex, '738')
 
     def test_number1_plus_number2(self):
 
         num1_segments = self.create_number_segments(200, 400, '43')
-        plus_segment = Digit('+', 300, 400)
+        plus_segment = Primitive.new_primitive('+', 300, 400)
         num2_segments = self.create_number_segments(350, 400, '538')
 
         segments = num1_segments + [plus_segment] + num2_segments
@@ -201,7 +202,7 @@ class LatexConstructionTests(unittest.TestCase):
 
     def test_number1_minus_number2(self):
         num1_segments = self.create_number_segments(200, 400, '43')
-        minus_segment = Digit('-', 300, 400)
+        minus_segment = Primitive.new_primitive('-', 300, 400)
         num2_segments = self.create_number_segments(350, 400, '538')
 
         segments = num1_segments + [minus_segment] + num2_segments
@@ -210,7 +211,7 @@ class LatexConstructionTests(unittest.TestCase):
 
     def test_number1_times_number2(self):
         num1_segments = self.create_number_segments(200, 400, '43')
-        minus_segment = Digit('times', 300, 400)
+        minus_segment = Primitive.new_primitive('times', 300, 400)
         num2_segments = self.create_number_segments(350, 400, '538')
 
         segments = num1_segments + [minus_segment] + num2_segments
@@ -219,24 +220,24 @@ class LatexConstructionTests(unittest.TestCase):
 
     def test_number1_over_number2(self):
         num1_segments = self.create_number_segments(200, 200, '43')
-        minus_segment = Digit('div', 198, 260)
+        minus_segment = Primitive.new_primitive('div', 198, 260)
         num2_segments = self.create_number_segments(202, 320, '538')
 
         segments = num1_segments + [minus_segment] + num2_segments
         latex = construct_latex(segments=segments, width=500, height=500)
-        self.assertEqual(latex, '\\frac{43}{538}')
+        self.assertEqual(latex, '\\\\frac{43}{538}')
 
     def create_number_segments(self, x, y, digits):
         segments = []
         dx = 45
         for digit in digits:
-            segments.append(Digit(digit, x, y))
+            segments.append(Primitive.new_primitive(digit, x, y))
             x += dx
         return segments
 
     def test_digit_to_the_digit_power(self):
-        segments = [Digit('7', 225, 340),
-                    Digit('3', 240, 380)]
+        segments = [Primitive.new_primitive('7', 225, 340),
+                    Primitive.new_primitive('3', 240, 380)]
         latex = construct_latex(segments=segments, width=500, height=500)
         self.assertEqual(latex, '{7}^{3}')
 

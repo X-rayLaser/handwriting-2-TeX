@@ -8,7 +8,7 @@ Window {
     x: 400
     y: 400
     width: 400
-    height: 400
+    height: 650
     visible: true
 
     property string latex: "\\\\frac{1}{4}"
@@ -23,7 +23,7 @@ Window {
 
         Rectangle {
             width: parent.width
-            height: 150
+            height: 300
             border.color: "red"
 
             Canvas {

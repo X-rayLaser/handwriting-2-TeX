@@ -1,14 +1,24 @@
 import numpy as np
 
 
-class Digit:
-    def __init__(self, digit, x, y):
+class Primitive:
+    def __init__(self, digit, region):
         self.digit = digit
+        x, y = region.xy_center
         self.x = x
         self.y = y
+        self.region = region
 
     def is_digit(self):
         return self.digit not in ['+', '-', 'times', 'div']
+
+    @staticmethod
+    def new_primitive(digit, x, y):
+        from config import image_size
+
+        region = RectangularRegion(x - image_size / 2,
+                                   y - image_size / 2, image_size, image_size)
+        return Primitive(digit, region)
 
 
 class RecognizedNumber:
@@ -153,7 +163,7 @@ class MathSegment:
 
     def get_fraction(self, segment):
         region = self.region.concatenate(segment)
-        latex = '\\frac{{{}}}{{{}}}'.format(self.latex, segment.latex)
+        latex = '\\\\frac{{{}}}{{{}}}'.format(self.latex, segment.latex)
         return MathSegment(region=region, latex=latex)
 
     def get_product(self, segment):

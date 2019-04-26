@@ -171,9 +171,12 @@ class FractionReducer(Reducer):
         divlen = 0
         longest_segment = None
         for segment in segments:
+            print('div line len:', divlen)
+
             if segment.is_division_sign() and segment.region.width > divlen:
                 divlen = segment.region.width
                 longest_segment = segment
+                print('Longer div line, len:', divlen)
 
         return longest_segment
 
@@ -266,7 +269,8 @@ def construct_latex(segments, width, height):
                 cls_name = ProductOperator
             elif seg.digit == 'div':
                 cls_name = DivisionOperator
-                height = 5
+                height = 2
+                width = seg.region.width
             else:
                 raise Exception('WOooowoow! digit is {}'.format(seg.digit))
 

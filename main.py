@@ -8,7 +8,7 @@ from PyQt5.QtWebEngine import QtWebEngine
 import numpy as np
 from segmentation import extract_segments
 from construction import LatexBuilder
-from building_blocks import Digit
+from building_blocks import Primitive, RectangularRegion
 import config
 from dataset_utils import index_to_class
 
@@ -21,16 +21,17 @@ def recognize(segments, model):
 
     for segment in segments:
         x, y = segment.bounding_box.xy_center
+        region = segment.bounding_box
 
-        if segment.bounding_box.width > 60:
-            res.append(Digit('div', x, y))
+        if segment.bounding_box.width > 45:
+            res.append(Primitive('div', region))
         else:
             input = prepare_input(segment)
             A = model.predict(input)
             class_index = np.argmax(np.max(A, axis=0), axis=0)
 
             category_class = index_to_class[class_index]
-            res.append(Digit(category_class, x, y))
+            res.append(Primitive.new_primitive(category_class, x, y))
 
     return res
 
@@ -55,13 +56,20 @@ class Recognizer(QtCore.QThread):
 
         return construct_latex(digits, pixmap.shape[1], pixmap.shape[0])
 
+    def get_job(self):
+        job = self.jobs_queue.get()
+
+        while not self.jobs_queue.empty():
+            job = self.jobs_queue.get()
+        return job
+
     def run(self):
         from models import get_math_symbols_model
 
         model = get_math_symbols_model()
 
         while True:
-            pixmap = self.jobs_queue.get()
+            pixmap = self.get_job()
             latex_str = self.construct_latex(pixmap, model)
 
             if latex_str:
