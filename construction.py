@@ -171,12 +171,9 @@ class FractionReducer(Reducer):
         divlen = 0
         longest_segment = None
         for segment in segments:
-            print('div line len:', divlen)
-
             if segment.is_division_sign() and segment.region.width > divlen:
                 divlen = segment.region.width
                 longest_segment = segment
-                print('Longer div line, len:', divlen)
 
         return longest_segment
 
@@ -184,8 +181,16 @@ class FractionReducer(Reducer):
         return self.find_longest_division_line(segments)
 
     def get_subregions(self, operator_segment, region):
+        x0 = operator_segment.region.x
+        x = x0 + operator_segment.region.width
         numerator_subregion = region.subregion_above(operator_segment.region.y)
+        numerator_subregion = numerator_subregion.right_subregion(x0)
+        numerator_subregion = numerator_subregion.left_subregion(x)
+
         denominator_subregion = region.subregion_below(operator_segment.region.y)
+        denominator_subregion = denominator_subregion.right_subregion(x0)
+        denominator_subregion = denominator_subregion.left_subregion(x)
+
         return numerator_subregion, denominator_subregion
 
     def apply_operation(self, op1, op2):
@@ -269,7 +274,7 @@ def construct_latex(segments, width, height):
                 cls_name = ProductOperator
             elif seg.digit == 'div':
                 cls_name = DivisionOperator
-                height = 2
+                height = 0
                 width = seg.region.width
             else:
                 raise Exception('WOooowoow! digit is {}'.format(seg.digit))
