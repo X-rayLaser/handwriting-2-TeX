@@ -316,9 +316,72 @@ class SplitHorizontallyTests(unittest.TestCase):
             self.assertAlmostEqual(regions[i].x, regions[i-1].x + regions[i-1].width)
 
 
-class OverlayTests(unittest.TestCase):
-    def test(self):
-        self.fail('Implement Overlay')
+class OverlayImageTests(unittest.TestCase):
+    def setUp(self):
+        import numpy as np
+        canvas = np.zeros((3, 3))
+        self.canvas = canvas
+
+    def test_overlay_well_within_boundaries(self):
+        from data_synthesis import overlay_image
+        from building_blocks import RectangularRegion
+
+        import numpy as np
+        img = np.array([[2, 4], [3, 99]])
+
+        overlay_image(self.canvas, img, x=1, y=1)
+
+        self.assertTupleEqual(self.canvas.shape, (3, 3))
+
+        a = np.array([[0, 0, 0],
+                      [0, 2, 4],
+                      [0, 3, 99]])
+        self.assertEqual(self.canvas.tolist(), a.tolist())
+
+    def test_overlay_when_position_out_of_bounds(self):
+        from data_synthesis import overlay_image
+        import numpy as np
+        img = np.array([[2, 4], [3, 99]])
+
+        overlay_image(self.canvas, img, x=1, y=3)
+        overlay_image(self.canvas, img, x=3, y=2)
+        overlay_image(self.canvas, img, x=30, y=20)
+        overlay_image(self.canvas, img, x=-3, y=-3)
+
+        self.assertTupleEqual(self.canvas.shape, (3, 3))
+
+        self.assertTrue(np.all(self.canvas == 0))
+
+    def test_overlay_when_part_of_image_out_of_bounds(self):
+        from data_synthesis import overlay_image
+        import numpy as np
+        img = np.array([[2, 4], [3, 99]])
+
+        overlay_image(self.canvas, img, x=2, y=1)
+
+        self.assertTupleEqual(self.canvas.shape, (3, 3))
+
+        a = np.array([[0, 0, 0],
+                      [0, 0, 2],
+                      [0, 0, 3]])
+        self.assertEqual(self.canvas.tolist(), a.tolist())
+
+    def test_overlay_thrice(self):
+        from data_synthesis import overlay_image
+
+        import numpy as np
+        img = np.array([[2, 4], [3, 99]])
+
+        overlay_image(self.canvas, img, x=1, y=1)
+        overlay_image(self.canvas, img, x=1, y=1)
+        overlay_image(self.canvas, img, x=1, y=1)
+
+        self.assertTupleEqual(self.canvas.shape, (3, 3))
+
+        a = np.array([[0, 0, 0],
+                      [0, 6, 12],
+                      [0, 9, 255]])
+        self.assertEqual(self.canvas.tolist(), a.tolist())
 
 
 class ChooseCompositeTests(unittest.TestCase):

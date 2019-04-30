@@ -6,6 +6,7 @@ from dataset_utils import examples_of_category
 
 
 image_size = 45
+min_size = image_size * 3
 
 
 def split_interval(interval_len, n):
@@ -45,6 +46,23 @@ def split_horizontally(width, height, max_n, min_size):
     return regions
 
 
+def overlay_image(canvas, img, x, y):
+    j, i = int(round(x)), int(round(y))
+    h, w = img.shape
+
+    if i >= canvas.shape[0] or j >= canvas.shape[1]:
+        return
+
+    if i < 0 or j < 0:
+        return
+
+    rows_available = canvas.shape[0] - i
+    cols_available = canvas.shape[1] - j
+    ny = min(h, rows_available)
+    nx = min(w, cols_available)
+    canvas[i:i + ny, j:j + nx] = np.minimum(canvas[i:i + ny, j:j + nx] + img[:ny, :nx], 255)
+
+
 def visualize_image(a):
     from PIL import Image
     im = Image.frombytes('L', (a.shape[1], a.shape[0]), a.tobytes())
@@ -74,7 +92,7 @@ def load_random_image(csv_files_dir, cat_id):
 
 
 class Synthesizer:
-    def __init__(self, csv_files_dir, img_width=700, img_height=650, min_size=110):
+    def __init__(self, csv_files_dir, img_width=1400, img_height=900, min_size=min_size):
         self.csv_dir = csv_files_dir
         self.img_width = img_width
         self.img_height = img_height
@@ -86,21 +104,8 @@ class Synthesizer:
         self.res_img = np.zeros((self.img_height, self.img_width),
                                 dtype=np.uint8)
 
-        regions = self._split_canvas()
-
-        latex = ''
-
-        for i in range(len(regions)):
-            region = regions[i]
-            if i % 2 == 0:
-                latex += self._fill_box(region)
-            else:
-                op = random.choice(['+', '-', 'times'])
-                self._draw_random_class_image(region, op)
-
-                strategy = get_drawing_strategy(self.csv_dir, op)
-                latex = strategy.combined_latex(latex, ' ')
-
+        region = RectangularRegion(0, 0, self.img_width, self.img_height)
+        latex = self._fill_box(region)
         visualize_image(self.res_img)
         print(latex)
         return latex
@@ -113,16 +118,26 @@ class Synthesizer:
 
     def _fill_box(self, region):
         min_size = self.min_size
+        xc, yc = region.xy_center
+        x = xc - image_size / 2
+        y = yc - image_size / 2
+
         if region.width <= min_size and region.height <= min_size:
             digit = str(random.randint(0, 9))
-            return self._draw_random_class_image(region, digit)
+            self._draw_random_class_image(x, y, digit)
+            return digit
+
+        if random.random() < 0.15:
+            digit = str(random.randint(0, 9))
+            self._draw_random_class_image(x, y, digit)
+            return digit
 
         op = self._choose_operation(region)
 
         strategy = get_drawing_strategy(self.csv_dir, op)
 
         if op != 'div':
-            self._draw_random_class_image(region, op)
+            self._draw_random_class_image(x, y, op)
         else:
             self._draw_div_line(region)
 
@@ -137,7 +152,10 @@ class Synthesizer:
         min_size = self.min_size
 
         if region.width > min_size and region.height > min_size:
-            operation_options = ['+', '-', 'times', 'div']
+            if random.random() < 0.5:
+                operation_options = ['+', '-', 'times']
+            else:
+                operation_options = ['div']
         elif region.width > min_size:
             operation_options = ['+', '-', 'times']
         elif region.height > min_size:
@@ -147,27 +165,38 @@ class Synthesizer:
 
         return random.choice(operation_options)
 
-    def _overlay(self, region, img):
-        x, y = region.xy_center
-        j = int(round(x - 45 // 2))
-        i = int(round(y - 45 // 2))
+    def _overlay(self, img, x, y):
+        overlay_image(self.res_img, img, x, y)
 
-        h, w = img.shape
-        try:
-            self.res_img[i:i + h, j:j + w] = img[:, :]
-        except:
-            pass
-
-    def _draw_random_class_image(self, region, label):
+    def _draw_random_class_image(self, x, y, label):
         img = load_random_image(self.csv_dir, label)
-        self._overlay(region, img)
+        self._overlay(img, x, y)
 
     def _draw_div_line(self, region):
         w = int(round(region.width))
-        a = np.zeros((5, w))
+        a = np.zeros((image_size, w))
 
-        a[1:3, 5:-5] = 220
-        self._overlay(region, a)
+        p_wavy = 0.15
+        phi = (random.random() - 0.5) * np.pi / 24
+
+        k = np.tan(phi)
+        b = image_size / 2
+        prevy = int(round(b))
+
+        for j in range(w):
+            y = int(round(k * j + b))
+            if random.random() < p_wavy:
+                i = random.randint(-1, 1)
+                row = min(image_size - 1, max(0, y + i))
+            else:
+                row = min(image_size - 1, max(0, y))
+
+            a[prevy, j] = 150
+            a[row, j] = 220
+            prevy = row
+
+        _, yc = region.xy_center
+        self._overlay(a, region.x, yc - image_size / 2)
 
 
 def get_drawing_strategy(csv_dir, operation):
@@ -189,10 +218,11 @@ class DrawExpression:
 
     def get_operand_regions(self, region):
         sign_size = 45 // 2
+        margin = 15
         x, y = region.xy_center
 
-        reg1 = region.left_subregion(x - sign_size)
-        reg2 = region.right_subregion(x + sign_size)
+        reg1 = region.left_subregion(x - sign_size - margin)
+        reg2 = region.right_subregion(x + sign_size + margin)
         return reg1, reg2
 
     def combined_latex(self, latex1, latex2):
@@ -217,10 +247,11 @@ class DrawProduct(DrawExpression):
 class DrawFraction(DrawExpression):
     def get_operand_regions(self, region):
         sign_size = 45 // 2
+        margin = 15
         x, y = region.xy_center
 
-        reg1 = region.subregion_above(y - sign_size)
-        reg2 = region.subregion_below(y + sign_size)
+        reg1 = region.subregion_above(y - sign_size - margin)
+        reg2 = region.subregion_below(y + sign_size + margin)
         return reg1, reg2
 
     def combined_latex(self, latex1, latex2):
