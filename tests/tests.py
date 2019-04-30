@@ -242,5 +242,89 @@ class LatexConstructionTests(unittest.TestCase):
         self.assertEqual(latex, '{7}^{3}')
 
 
+class SplitIntervalTests(unittest.TestCase):
+    def test_outputs_single_section_for_small_width(self):
+        from data_synthesis import split_interval
+        sections = split_interval(interval_len=120, n=1)
+        self.assertEqual(len(sections), 1)
+        self.assertEqual(sections[0], 120)
+
+    def test_outputs_add_to_original_len(self):
+        from data_synthesis import split_interval
+        sections = split_interval(interval_len=640, n=5)
+        self.assertEqual(len(sections), 5)
+        self.assertAlmostEqual(sum(sections), 640)
+
+    def test_outputs_are_in_valid_range(self):
+        from data_synthesis import split_interval
+        sections = split_interval(interval_len=340, n=2)
+        self.assertLess(sections[0], 340)
+        self.assertLess(sections[1], 340)
+
+        self.assertGreater(sections[0], 0)
+        self.assertGreater(sections[1], 0)
+
+
+class ReduceSectionsTests(unittest.TestCase):
+    def test_with_one_section(self):
+        from data_synthesis import reduce_sections
+        sections = reduce_sections([30], min_size=100)
+        self.assertEqual(len(sections), 1)
+        self.assertEqual(sections, [30])
+
+        sections = reduce_sections([130], min_size=100)
+        self.assertEqual(len(sections), 1)
+        self.assertEqual(sections, [130])
+
+    def test_outputs_sizes_are_in_valid_range(self):
+        from data_synthesis import reduce_sections
+
+        sections = reduce_sections([30, 120, 203, 450, 50, 30], min_size=100)
+        self.assertEqual(len(sections), 4)
+        sections.sort(reverse=True)
+        self.assertEqual(sections, [450, 203, 120, 110])
+
+    def test_with_all_sections_being_small(self):
+        from data_synthesis import reduce_sections
+
+        sections = reduce_sections([20, 10, 20, 30, 40], min_size=100)
+        sections.sort(reverse=True)
+        self.assertEqual(sections, [120])
+
+    def test_with_special_sequence(self):
+        from data_synthesis import reduce_sections
+
+        sections = reduce_sections([10, 10, 10, 30, 40, 40, 90], min_size=70)
+        sections.sort(reverse=True)
+        self.assertEqual(sections, [140, 90])
+
+
+class SplitHorizontallyTests(unittest.TestCase):
+    def test_outputs_single_region_for_small_width(self):
+        from data_synthesis import split_horizontally
+        regions = split_horizontally(width=120, height=390, max_n=1, min_size=30)
+        self.assertEqual(len(regions), 1)
+        self.assertEqual(regions[0].x, 0)
+        self.assertEqual(regions[0].y, 0)
+        self.assertEqual(regions[0].width, 120)
+        self.assertEqual(regions[0].height, 390)
+
+    def test_resulting_regions_are_located_side_by_side(self):
+        from data_synthesis import split_horizontally
+        regions = split_horizontally(600, 400, max_n=10, min_size=80)
+        for i in range(1, len(regions)):
+            self.assertAlmostEqual(regions[i].x, regions[i-1].x + regions[i-1].width)
+
+
+class OverlayTests(unittest.TestCase):
+    def test(self):
+        self.fail('Implement Overlay')
+
+
+class ChooseCompositeTests(unittest.TestCase):
+    def test(self):
+        self.fail('imiplement choose composite tests')
+
+
 if __name__ == '__main__':
     unittest.main()
