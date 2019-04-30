@@ -83,16 +83,13 @@ def load_random_image(csv_files_dir, cat_id):
 
         i += 1
 
-    from PIL import Image
     a = np.array(list(f), dtype=np.uint8).reshape((image_size, image_size))
 
-    im = Image.frombytes('L', (image_size, image_size), a.tobytes())
-    #im.show()
     return a
 
 
 class Synthesizer:
-    def __init__(self, csv_files_dir, img_width=1400, img_height=900, min_size=min_size):
+    def __init__(self, csv_files_dir, img_width=600, img_height=400, min_size=min_size):
         self.csv_dir = csv_files_dir
         self.img_width = img_width
         self.img_height = img_height
@@ -127,7 +124,7 @@ class Synthesizer:
             self._draw_random_class_image(x, y, digit)
             return digit
 
-        if random.random() < 0.15:
+        if random.random() < 0.25:
             digit = str(random.randint(0, 9))
             self._draw_random_class_image(x, y, digit)
             return digit
@@ -183,7 +180,9 @@ class Synthesizer:
         b = image_size / 2
         prevy = int(round(b))
 
-        for j in range(w):
+        margin = int(round(w * 2 / 100))
+
+        for j in range(margin, w - margin):
             y = int(round(k * j + b))
             if random.random() < p_wavy:
                 i = random.randint(-1, 1)
@@ -218,7 +217,7 @@ class DrawExpression:
 
     def get_operand_regions(self, region):
         sign_size = 45 // 2
-        margin = 15
+        margin = 10
         x, y = region.xy_center
 
         reg1 = region.left_subregion(x - sign_size - margin)
@@ -247,7 +246,7 @@ class DrawProduct(DrawExpression):
 class DrawFraction(DrawExpression):
     def get_operand_regions(self, region):
         sign_size = 45 // 2
-        margin = 15
+        margin = 10
         x, y = region.xy_center
 
         reg1 = region.subregion_above(y - sign_size - margin)
