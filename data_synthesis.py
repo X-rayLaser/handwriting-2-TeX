@@ -219,7 +219,9 @@ class Synthesizer:
         if region.height > self.min_size:
             candidates.append(DivisionComposite())
 
-        #ndigits = self.min_size // image_size
+        if region.width > image_size * 2 and region.height > image_size * 2:
+            candidates.append(PowerComposite())
+
         candidates.append(NumberComposite())
 
         return candidates
@@ -269,35 +271,35 @@ class BaseComposite:
 
 
 class SumComposite(BaseComposite):
-    prob = 0.2
+    prob = 1.0 / 6
 
     def _get_operation(self):
         return '+'
 
 
 class SubstractionComposite(BaseComposite):
-    prob = 0.2
+    prob = 1.0 / 6
 
     def _get_operation(self):
         return '-'
 
 
 class ProductComposite(BaseComposite):
-    prob = 0.2
+    prob = 1.0 / 6
 
     def _get_operation(self):
         return 'times'
 
 
 class DivisionComposite(BaseComposite):
-    prob = 0.2
+    prob = 1.0 / 6
 
     def _get_operation(self):
         return 'div'
 
 
 class NumberComposite(BaseComposite):
-    prob = 0.2
+    prob = 1.0 / 6
 
     def draw(self, region, synthesizer):
         max_n = region.width // image_size
@@ -307,15 +309,44 @@ class NumberComposite(BaseComposite):
         x = xc - n * image_size // 2
         y = yc - image_size // 2
 
+        return self.draw_random_number(x, y, n)
+
+    def draw_random_number(self, x, y, n):
         digits = []
         for i in range(n):
-            digit = str(random.randint(0, 9))
+            digit = synthesizer.canvas.draw_random_digit(x, y)
             digits.append(digit)
-            synthesizer.canvas.draw_random_class_image(x, y, digit)
             x += image_size
 
-        number = ''.join(digits)
-        return number
+        return ''.join(digits)
+
+
+class PowerComposite(NumberComposite):
+    prob = 1.0 / 6
+
+    def draw(self, region, synthesizer):
+        max_n = region.width // image_size
+        n = random.randint(2, max_n)
+
+        n1 = random.randint(1, n - 1)
+        n2 = n - n1
+        numbers = [n1, n2]
+        random.shuffle(numbers)
+        n1, n2 = numbers
+
+        xc, yc = region.xy_center
+        x = xc - n * image_size // 2
+        y = yc - image_size // 2
+
+        num1 = self.draw_random_number(x, y, n1)
+
+        x += image_size * n1 + 5
+
+        y -= (image_size - 5)
+
+        num2 = self.draw_random_number(x, y, n2)
+
+        return '{' + num1 + '}' + '^' + '{' + num2 + '}'
 
 
 class DrawExpression:
