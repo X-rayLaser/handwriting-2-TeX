@@ -1,6 +1,8 @@
 import random
 import os
 import numpy as np
+from keras.preprocessing.image import ImageDataGenerator
+
 from building_blocks import RectangularRegion
 from dataset_utils import examples_of_category
 
@@ -69,25 +71,6 @@ def visualize_image(a):
     im.show()
 
 
-def load_random_image(csv_files_dir, cat_id):
-    fname = cat_id + '.csv'
-
-    index = random.randint(0, 1500)
-    i = 0
-    f = None
-
-    for features, _ in examples_of_category(csv_files_dir, fname):
-        f = features
-        if i == index:
-            break
-
-        i += 1
-
-    a = np.array(list(f), dtype=np.uint8).reshape((image_size, image_size))
-
-    return a
-
-
 def straight_line(n, slope, b, waviness):
     y = np.arange(n) * slope + b
 
@@ -106,7 +89,7 @@ def create_division_line_image(shape, waviness=0.5, phi=np.pi / 24):
 
     margin = int(round(w * 2 / 100))
 
-    y_indices = straight_line(w, k, b, waviness=0.5)
+    y_indices = straight_line(w, k, b, waviness=waviness)
 
     for j in range(margin, w - margin):
         y = int(round(y_indices[j]))
@@ -117,6 +100,87 @@ def create_division_line_image(shape, waviness=0.5, phi=np.pi / 24):
     return a
 
 
+class ImagesGenerator:
+    def __init__(self, width, height, images_dir):
+        self._images_dir = images_dir
+        self._width = width
+        self._height = height
+        self._image_generators = {}
+        self._make_generators()
+
+    def _make_generators(self):
+        from dataset_utils import index_to_class
+        for image_class in index_to_class:
+            gen = self._new_generator(image_class)
+            self._image_generators[image_class] = gen
+
+    def _new_generator(self, image_class):
+        fname = '{}.csv'.format(image_class)
+
+        while True:
+            for pixels, _ in examples_of_category(self._images_dir, fname):
+                a = np.array(list(pixels), dtype=np.uint8)
+                yield a.reshape((self._height, self._width)), image_class
+
+    def next_image(self, cat_class):
+        gen = self._image_generators[cat_class]
+
+        # items will appear to go in random order
+        nskip = random.randint(0, 100)
+
+        for i in range(nskip):
+            next(gen)
+
+        keras_generator = ImageDataGenerator(rotation_range=10,
+                                             height_shift_range=0.05,
+                                             width_shift_range=0.05,
+                                             zoom_range=[0.8, 1.8],
+                                             fill_mode='constant',
+                                             cval=0)
+        x, y = next(gen)
+        x = x.reshape((1, self._height, self._width, 1))
+
+        for x_batch, y_batch in keras_generator.flow(x, [y], batch_size=1):
+            return x_batch[0].reshape((self._height, self._width))
+
+
+class Canvas:
+    def __init__(self, width, height, dataset_dir):
+        self._images_generator = ImagesGenerator(
+            image_size, image_size, dataset_dir
+        )
+        self._res_img = np.zeros((height, width), dtype=np.uint8)
+
+    @property
+    def image_data(self):
+        return self._res_img
+
+    def reset(self):
+        self._res_img[:, :] = 0
+
+    def _overlay(self, img, x, y):
+        overlay_image(self._res_img, img, x, y)
+
+    def draw_random_digit(self, x, y):
+        digit = str(random.randint(0, 9))
+        self.draw_random_class_image(x, y, digit)
+        return digit
+
+    def draw_random_class_image(self, x, y, label):
+        img = self._images_generator.next_image(label)
+        self._overlay(img, x, y)
+
+    def draw_div_line(self, region):
+        w = int(round(region.width))
+
+        max_slope = np.pi / 24
+        phi = (random.random() - 0.5) * max_slope
+        a = create_division_line_image((image_size, w), waviness=0.5, phi=phi)
+
+        _, yc = region.xy_center
+        self._overlay(a, region.x, yc - image_size / 2)
+
+
 class Synthesizer:
     def __init__(self, csv_files_dir, img_width=600, img_height=400, min_size=min_size):
         self.csv_dir = csv_files_dir
@@ -124,20 +188,13 @@ class Synthesizer:
         self.img_height = img_height
         self.min_size = min_size
 
-        self.res_img = np.zeros((img_height, img_width), dtype=np.uint8)
+        self.canvas = Canvas(img_width, img_height, csv_files_dir)
 
     def synthesize_example(self):
-        self.res_img = np.zeros((self.img_height, self.img_width),
-                                dtype=np.uint8)
-
+        self.canvas.reset()
         region = RectangularRegion(0, 0, self.img_width, self.img_height)
         latex = self._fill_box(region)
-        return self.res_img, latex
-
-    def _split_canvas(self):
-        n = random.randint(1, int(round(self.img_width / min_size)))
-        return split_horizontally(self.img_width, self.img_height,
-                                  max_n=n, min_size=self.min_size)
+        return self.canvas.image_data, latex
 
     def _fill_box(self, region):
         candidates = self._get_candidate_composites(region)
@@ -167,41 +224,16 @@ class Synthesizer:
 
         return candidates
 
-    def _draw_composite(self, composite, region):
-        return composite.draw(region, synthesizer=self)
 
-    def _overlay(self, img, x, y):
-        overlay_image(self.res_img, img, x, y)
-
-    def _draw_random_digit(self, x, y):
-        digit = str(random.randint(0, 9))
-        self._draw_random_class_image(x, y, digit)
-        return digit
-
-    def _draw_random_class_image(self, x, y, label):
-        img = load_random_image(self.csv_dir, label)
-        self._overlay(img, x, y)
-
-    def _draw_div_line(self, region):
-        w = int(round(region.width))
-
-        max_slope = np.pi / 24
-        phi = (random.random() - 0.5) * max_slope
-        a = create_division_line_image((image_size, w), waviness=0.5, phi=phi)
-
-        _, yc = region.xy_center
-        self._overlay(a, region.x, yc - image_size / 2)
-
-
-def get_drawing_strategy(csv_dir, operation):
+def get_drawing_strategy(operation):
     if operation == '+':
-        return DrawSum(csv_dir)
+        return DrawSum()
     elif operation == '-':
-        return DrawDifference(csv_dir)
+        return DrawDifference()
     elif operation == 'times':
-        return DrawProduct(csv_dir)
+        return DrawProduct()
     elif operation == 'div':
-        return DrawFraction(csv_dir)
+        return DrawFraction()
     else:
         raise Exception('Unknown operation')
 
@@ -212,12 +244,12 @@ class BaseComposite:
 
         op = self._get_operation()
 
-        strategy = get_drawing_strategy(synthesizer.csv_dir, op)
+        strategy = get_drawing_strategy(op)
 
         if op != 'div':
-            synthesizer._draw_random_class_image(x, y, op)
+            synthesizer.canvas.draw_random_class_image(x, y, op)
         else:
-            synthesizer._draw_div_line(region)
+            synthesizer.canvas.draw_div_line(region)
 
         region1, region2 = strategy.get_operand_regions(region)
 
@@ -270,14 +302,11 @@ class NumberComposite(BaseComposite):
     def draw(self, region, synthesizer):
         x, y = self._get_coordinates(region)
         digit = str(random.randint(0, 9))
-        synthesizer._draw_random_class_image(x, y, digit)
+        synthesizer.canvas.draw_random_class_image(x, y, digit)
         return digit
 
 
 class DrawExpression:
-    def __init__(self, csv_dir):
-        self.csv_dir = csv_dir
-
     def get_operand_regions(self, region):
         sign_size = 45 // 2
         margin = 10
