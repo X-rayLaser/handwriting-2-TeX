@@ -300,10 +300,22 @@ class NumberComposite(BaseComposite):
     prob = 0.2
 
     def draw(self, region, synthesizer):
-        x, y = self._get_coordinates(region)
-        digit = str(random.randint(0, 9))
-        synthesizer.canvas.draw_random_class_image(x, y, digit)
-        return digit
+        max_n = region.width // image_size
+        n = random.randint(1, max_n)
+
+        xc, yc = region.xy_center
+        x = xc - n * image_size // 2
+        y = yc - image_size // 2
+
+        digits = []
+        for i in range(n):
+            digit = str(random.randint(0, 9))
+            digits.append(digit)
+            synthesizer.canvas.draw_random_class_image(x, y, digit)
+            x += image_size
+
+        number = ''.join(digits)
+        return number
 
 
 class DrawExpression:
