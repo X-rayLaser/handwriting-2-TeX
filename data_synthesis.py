@@ -88,6 +88,35 @@ def load_random_image(csv_files_dir, cat_id):
     return a
 
 
+def straight_line(n, slope, b, waviness):
+    y = np.arange(n) * slope + b
+
+    mask = np.random.rand() < waviness
+    distorter = np.random.randint(-1, 1, n) * mask
+
+    return y + distorter
+
+
+def create_division_line_image(shape, waviness=0.5, phi=np.pi / 24):
+    a = np.zeros(shape)
+    h, w = shape
+
+    k = np.tan(phi)
+    b = h / 2
+
+    margin = int(round(w * 2 / 100))
+
+    y_indices = straight_line(w, k, b, waviness=0.5)
+
+    for j in range(margin, w - margin):
+        y = int(round(y_indices[j]))
+        row = min(h - 1, max(0, y))
+
+        a[row, j] = 255
+
+    return a
+
+
 class Synthesizer:
     def __init__(self, csv_files_dir, img_width=600, img_height=400, min_size=min_size):
         self.csv_dir = csv_files_dir
@@ -103,67 +132,51 @@ class Synthesizer:
 
         region = RectangularRegion(0, 0, self.img_width, self.img_height)
         latex = self._fill_box(region)
-        visualize_image(self.res_img)
-        print(latex)
-        return latex
+        return self.res_img, latex
 
     def _split_canvas(self):
-        width, height, min_size = self.img_width, self.img_height, self.min_size
-
-        n = random.randint(1, int(round(width / min_size)))
-        return split_horizontally(width, height, max_n=n, min_size=min_size)
+        n = random.randint(1, int(round(self.img_width / min_size)))
+        return split_horizontally(self.img_width, self.img_height,
+                                  max_n=n, min_size=self.min_size)
 
     def _fill_box(self, region):
-        min_size = self.min_size
-        xc, yc = region.xy_center
-        x = xc - image_size / 2
-        y = yc - image_size / 2
+        candidates = self._get_candidate_composites(region)
+        composite = self._choose_composite(candidates)
+        return composite.draw(region, self)
 
-        if region.width <= min_size and region.height <= min_size:
-            digit = str(random.randint(0, 9))
-            self._draw_random_class_image(x, y, digit)
-            return digit
+    def _choose_composite(self, candidates):
+        factor = sum(map(lambda c: c.prob, candidates))
 
-        if random.random() < 0.25:
-            digit = str(random.randint(0, 9))
-            self._draw_random_class_image(x, y, digit)
-            return digit
+        rescaled_probs = [candidate.prob / factor for candidate in candidates]
 
-        op = self._choose_operation(region)
+        assert abs(sum(rescaled_probs) - 1) < 0.001
+        return np.random.choice(candidates, p=rescaled_probs)
 
-        strategy = get_drawing_strategy(self.csv_dir, op)
+    def _get_candidate_composites(self, region):
+        candidates = []
+        if region.width > self.min_size:
+            candidates.append(SumComposite())
+            candidates.append(SubstractionComposite())
+            candidates.append(ProductComposite())
 
-        if op != 'div':
-            self._draw_random_class_image(x, y, op)
-        else:
-            self._draw_div_line(region)
+        if region.height > self.min_size:
+            candidates.append(DivisionComposite())
 
-        region1, region2 = strategy.get_operand_regions(region)
+        #ndigits = self.min_size // image_size
+        candidates.append(NumberComposite())
 
-        latex1 = self._fill_box(region1)
-        latex2 = self._fill_box(region2)
+        return candidates
 
-        return strategy.combined_latex(latex1, latex2)
-
-    def _choose_operation(self, region):
-        min_size = self.min_size
-
-        if region.width > min_size and region.height > min_size:
-            if random.random() < 0.5:
-                operation_options = ['+', '-', 'times']
-            else:
-                operation_options = ['div']
-        elif region.width > min_size:
-            operation_options = ['+', '-', 'times']
-        elif region.height > min_size:
-            operation_options = ['div']
-        else:
-            raise Exception('Oops')
-
-        return random.choice(operation_options)
+    def _draw_composite(self, composite, region):
+        return composite.draw(region, synthesizer=self)
 
     def _overlay(self, img, x, y):
         overlay_image(self.res_img, img, x, y)
+
+    def _draw_random_digit(self, x, y):
+        digit = str(random.randint(0, 9))
+        self._draw_random_class_image(x, y, digit)
+        return digit
 
     def _draw_random_class_image(self, x, y, label):
         img = load_random_image(self.csv_dir, label)
@@ -171,28 +184,10 @@ class Synthesizer:
 
     def _draw_div_line(self, region):
         w = int(round(region.width))
-        a = np.zeros((image_size, w))
 
-        p_wavy = 0.15
-        phi = (random.random() - 0.5) * np.pi / 24
-
-        k = np.tan(phi)
-        b = image_size / 2
-        prevy = int(round(b))
-
-        margin = int(round(w * 2 / 100))
-
-        for j in range(margin, w - margin):
-            y = int(round(k * j + b))
-            if random.random() < p_wavy:
-                i = random.randint(-1, 1)
-                row = min(image_size - 1, max(0, y + i))
-            else:
-                row = min(image_size - 1, max(0, y))
-
-            a[prevy, j] = 150
-            a[row, j] = 220
-            prevy = row
+        max_slope = np.pi / 24
+        phi = (random.random() - 0.5) * max_slope
+        a = create_division_line_image((image_size, w), waviness=0.5, phi=phi)
 
         _, yc = region.xy_center
         self._overlay(a, region.x, yc - image_size / 2)
@@ -209,6 +204,74 @@ def get_drawing_strategy(csv_dir, operation):
         return DrawFraction(csv_dir)
     else:
         raise Exception('Unknown operation')
+
+
+class BaseComposite:
+    def draw(self, region, synthesizer):
+        x, y = self._get_coordinates(region)
+
+        op = self._get_operation()
+
+        strategy = get_drawing_strategy(synthesizer.csv_dir, op)
+
+        if op != 'div':
+            synthesizer._draw_random_class_image(x, y, op)
+        else:
+            synthesizer._draw_div_line(region)
+
+        region1, region2 = strategy.get_operand_regions(region)
+
+        latex1 = synthesizer._fill_box(region1)
+        latex2 = synthesizer._fill_box(region2)
+
+        return strategy.combined_latex(latex1, latex2)
+
+    def _get_coordinates(self, region):
+        xc, yc = region.xy_center
+        x = xc - image_size / 2
+        y = yc - image_size / 2
+        return x, y
+
+    def _get_operation(self):
+        raise NotImplementedError
+
+
+class SumComposite(BaseComposite):
+    prob = 0.2
+
+    def _get_operation(self):
+        return '+'
+
+
+class SubstractionComposite(BaseComposite):
+    prob = 0.2
+
+    def _get_operation(self):
+        return '-'
+
+
+class ProductComposite(BaseComposite):
+    prob = 0.2
+
+    def _get_operation(self):
+        return 'times'
+
+
+class DivisionComposite(BaseComposite):
+    prob = 0.2
+
+    def _get_operation(self):
+        return 'div'
+
+
+class NumberComposite(BaseComposite):
+    prob = 0.2
+
+    def draw(self, region, synthesizer):
+        x, y = self._get_coordinates(region)
+        digit = str(random.randint(0, 9))
+        synthesizer._draw_random_class_image(x, y, digit)
+        return digit
 
 
 class DrawExpression:
@@ -254,9 +317,12 @@ class DrawFraction(DrawExpression):
         return reg1, reg2
 
     def combined_latex(self, latex1, latex2):
-        return '\\\\frac{}{}'.format(latex1, latex2)
+        return '\\\\frac{{{}}}{{{}}}'.format(latex1, latex2)
 
 
 if __name__ == '__main__':
     synthesizer = Synthesizer('datasets/digits_and_operators_csv/dev')
-    synthesizer.synthesize_example()
+    img, latex = synthesizer.synthesize_example()
+
+    visualize_image(img)
+    print(latex)
