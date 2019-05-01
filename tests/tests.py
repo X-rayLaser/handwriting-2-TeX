@@ -384,10 +384,5 @@ class OverlayImageTests(unittest.TestCase):
         self.assertEqual(self.canvas.tolist(), a.tolist())
 
 
-class ChooseCompositeTests(unittest.TestCase):
-    def test(self):
-        self.fail('imiplement choose composite tests')
-
-
 if __name__ == '__main__':
     unittest.main()

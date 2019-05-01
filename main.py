@@ -5,40 +5,7 @@ from PyQt5.QtCore import QUrl
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWebEngine import QtWebEngine
-import numpy as np
-from segmentation import extract_segments
-from construction import LatexBuilder
-from building_blocks import Primitive, RectangularRegion
-import config
-from dataset_utils import index_to_class
-
-
-image_size = config.image_size
-
-
-def recognize(segments, model):
-    res = []
-
-    for segment in segments:
-        x, y = segment.bounding_box.xy_center
-        region = segment.bounding_box
-
-        if segment.bounding_box.width > 45:
-            res.append(Primitive('div', region))
-        else:
-            input = prepare_input(segment)
-            A = model.predict(input)
-            class_index = np.argmax(np.max(A, axis=0), axis=0)
-
-            category_class = index_to_class[class_index]
-            res.append(Primitive.new_primitive(category_class, x, y))
-
-    return res
-
-
-def prepare_input(segment):
-    x = segment.pixels / 255.0
-    return x.reshape(1, image_size, image_size, 1)
+import pipeline
 
 
 class Recognizer(QtCore.QThread):
@@ -47,14 +14,6 @@ class Recognizer(QtCore.QThread):
     def __init__(self, jobs_queue):
         super().__init__()
         self.jobs_queue = jobs_queue
-
-    def construct_latex(self, pixmap, model):
-        from construction import construct_latex
-        segments = extract_segments(pixmap)
-
-        digits = recognize(segments, model)
-
-        return construct_latex(digits, pixmap.shape[1], pixmap.shape[0])
 
     def get_job(self):
         job = self.jobs_queue.get()
@@ -69,8 +28,8 @@ class Recognizer(QtCore.QThread):
         model = get_math_symbols_model()
 
         while True:
-            pixmap = self.get_job()
-            latex_str = self.construct_latex(pixmap, model)
+            image = self.get_job()
+            latex_str = pipeline.image_to_latex(image, model)
 
             if latex_str:
                 self.completed.emit(latex_str)
