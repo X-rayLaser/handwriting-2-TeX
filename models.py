@@ -57,7 +57,7 @@ def norm_generator(gen):
         yield x_batch / 255.0, y_batch
 
 
-def train_math_recognition_model(epochs=2):
+def train_math_recognition_model(epochs):
     import os
     from dataset_utils import dataset_generator, dataset_size, load_dataset
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         description='Given an image, compress it using JPEG algorithm'
     )
 
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=8,
                         help='number of iterations')
 
     args = parser.parse_args()
