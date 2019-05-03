@@ -2,6 +2,8 @@ import unittest
 from util import connect_chains, ChainOfPoints, chains_sorted_by_distance
 from building_blocks import Primitive
 from construction import construct_latex
+from segmentation import locate_digits
+import numpy as np
 
 
 class ChainOfPointsTests(unittest.TestCase):
@@ -382,6 +384,28 @@ class OverlayImageTests(unittest.TestCase):
                       [0, 6, 12],
                       [0, 9, 255]])
         self.assertEqual(self.canvas.tolist(), a.tolist())
+
+
+class SegmentationTests(unittest.TestCase):
+    def test_object_intersects_left_image_border(self):
+        a = np.zeros((5, 5))
+        a[3:4, 2] = 243
+        locate_digits(a)
+
+    def test_object_intersects_right_image_border(self):
+        a = np.zeros((5, 5))
+        a[2, 4] = 243
+        locate_digits(a)
+
+    def test_object_intersects_upper_image_border(self):
+        a = np.zeros((5, 5))
+        a[0, 4] = 243
+        locate_digits(a)
+
+    def test_object_intersects_bottom_image_border(self):
+        a = np.zeros((5, 5))
+        a[4, 4] = 243
+        locate_digits(a)
 
 
 if __name__ == '__main__':

@@ -5,21 +5,43 @@ from building_blocks import RectangularRegion
 image_size = config.image_size
 
 
+def column_pixels_sum(a, col):
+    return np.sum(a[:, col])
+
+
+def row_pixels_sum(a, row):
+    return np.sum(a[row, :])
+
+
 def pinpoint_digit(pixmap):
     a = pixmap
-    left = np.argmax(np.sum(a, axis=0) > 0)
-    right = left + np.argmin(np.sum(a, axis=0)[left:] > 0)
+    h, w = a.shape
 
-    top = np.argmax(np.sum(a, axis=1) > 0)
-    bottom = top + np.argmin(np.sum(a, axis=1)[top:] > 0)
+    if column_pixels_sum(a, 0) > 0:
+        left = 0
+    else:
+        left = np.argmax(np.sum(a, axis=0) > 0)
+
+    if column_pixels_sum(a, w-1) > 0:
+        right = w - 1
+    else:
+        right = left + np.argmin(np.sum(a, axis=0)[left:] > 0)
+
+    if row_pixels_sum(a, 0) > 0:
+        top = 0
+    else:
+        top = np.argmax(np.sum(a, axis=1) > 0)
+
+    if row_pixels_sum(a, h - 1) > 0:
+        bottom = h - 1
+    else:
+        bottom = top + np.argmin(np.sum(a, axis=1)[top:] > 0)
 
     y = int(round(top))
     x = int(round(left))
 
     width = right - left
     height = bottom - top
-    assert width > 0
-    assert height > 0
     return RectangularRegion(x, y, width, height)
 
 
@@ -62,7 +84,9 @@ def locate_digits(pixmap):
         temp[list(drawing)] = True
         a[:, :] = sm * temp.reshape(h, w)
 
-        bounding_boxes.append(pinpoint_digit(a))
+        rect = pinpoint_digit(a)
+        if rect.width > 0 and rect.height > 0:
+            bounding_boxes.append(rect)
     return bounding_boxes
 
 
