@@ -309,9 +309,9 @@ class NumberComposite(BaseComposite):
         x = xc - n * image_size // 2
         y = yc - image_size // 2
 
-        return self.draw_random_number(x, y, n)
+        return self.draw_random_number(x, y, n, synthesizer)
 
-    def draw_random_number(self, x, y, n):
+    def draw_random_number(self, x, y, n, synthesizer):
         digits = []
         for i in range(n):
             digit = synthesizer.canvas.draw_random_digit(x, y)
@@ -338,13 +338,13 @@ class PowerComposite(NumberComposite):
         x = xc - n * image_size // 2
         y = yc - image_size // 2
 
-        num1 = self.draw_random_number(x, y, n1)
+        num1 = self.draw_random_number(x, y, n1, synthesizer)
 
         x += image_size * n1 + 5
 
         y -= (image_size - 5)
 
-        num2 = self.draw_random_number(x, y, n2)
+        num2 = self.draw_random_number(x, y, n2, synthesizer)
 
         return '{' + num1 + '}' + '^' + '{' + num2 + '}'
 

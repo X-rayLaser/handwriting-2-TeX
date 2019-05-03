@@ -133,7 +133,10 @@ class RectangularRegion:
         from shapely.geometry import box
 
         region = segment.region
-        b = box(region.x, region.y, region.x + region.width, region.y + region.height)
+        #b = box(region.x, region.y, region.x + region.width, region.y + region.height)
+
+        x, y = region.xy_center
+        b = box(x, y, x + 1, y + 1)
         return b.within(self.rectbox)
 
     def concatenate(self, segment):
