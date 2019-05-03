@@ -49,6 +49,9 @@ def shuffle_data(x, y):
 
 
 def dataset_generator(x, labels, mini_batch_size=128):
+    from data_synthesis import augmented_generator
+    image_data_generator = augmented_generator()
+
     while True:
         x, labels = shuffle_data(x, labels)
 
@@ -56,8 +59,16 @@ def dataset_generator(x, labels, mini_batch_size=128):
             x_batch = x[i:i + mini_batch_size, :]
             y_batch = utils.to_categorical(labels[i:i + mini_batch_size], num_classes=14)
 
-            x_batch_norm = x_batch.reshape((x_batch.shape[0], 45, 45, 1)) / 255.0
-            yield x_batch_norm, y_batch
+            x_batch = x_batch.reshape((x_batch.shape[0], 45, 45, 1))
+
+            gen_flow = image_data_generator.flow(x_batch, y_batch,
+                                                 batch_size=x_batch.shape[0])
+
+            for x_augemented_batch, y_augmented_batch in gen_flow:
+                x_batch_norm = x_augemented_batch / 255.0
+
+                yield x_batch_norm, y_augmented_batch
+                break
 
 
 def all_examples_with_category(args):

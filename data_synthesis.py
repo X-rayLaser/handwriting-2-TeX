@@ -11,6 +11,15 @@ image_size = 45
 min_size = image_size * 3
 
 
+def augmented_generator():
+    return ImageDataGenerator(rotation_range=20,
+                              zoom_range=[0.95, 1.4],
+                              height_shift_range=0.02,
+                              width_shift_range=0.02,
+                              fill_mode='constant',
+                              cval=0)
+
+
 def split_interval(interval_len, n):
     a = np.random.rand(n)
     interval_fractions = a / np.sum(a)
@@ -131,12 +140,8 @@ class ImagesGenerator:
         for i in range(nskip):
             next(gen)
 
-        keras_generator = ImageDataGenerator(rotation_range=10,
-                                             height_shift_range=0.05,
-                                             width_shift_range=0.05,
-                                             zoom_range=[0.8, 1.8],
-                                             fill_mode='constant',
-                                             cval=0)
+        keras_generator = augmented_generator()
+
         x, y = next(gen)
         x = x.reshape((1, self._height, self._width, 1))
 
