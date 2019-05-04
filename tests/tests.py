@@ -178,6 +178,14 @@ class RightSubregionTests(unittest.TestCase):
         self.assertEqual(subregion.height, 40)
 
 
+class SubregionCornerCasesTests(unittest.TestCase):
+    def test_subregion_formed_outside_original_area(self):
+        from construction import RectangularRegion
+
+        region = RectangularRegion(x=20, y=30, width=50, height=40)
+        region.left_subregion(-10).subregion_below(400)
+
+
 class LatexConstructionTests(unittest.TestCase):
     def test_with_single_digit(self):
 

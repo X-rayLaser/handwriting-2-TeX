@@ -351,7 +351,7 @@ class PowerComposite(NumberComposite):
 
         num2 = self.draw_random_number(x, y, n2, synthesizer)
 
-        return '{' + num1 + '}' + '^' + '{' + num2 + '}'
+        return num1 + '^' + '{' + num2 + '}'
 
 
 class DrawExpression:

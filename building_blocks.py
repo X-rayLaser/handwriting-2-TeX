@@ -39,7 +39,7 @@ class MathSegment:
 
         dy = self.region.y - (segment.region.y + self.region.height)
 
-        dy_min = 0
+        dy_min = - image_size / 2
         return dx > - image_size / 2.0 and dx < threshold and dy > dy_min and dy < image_size * 4
 
     def concatenate(self, segment):
@@ -145,6 +145,8 @@ class RectangularRegion:
         from shapely.geometry import box
 
         new_box = box(x0, y0, x, y).intersection(self.rectbox)
+        if not new_box.bounds:
+            return RectangularRegion(x0, y0, 0, 0)
         x0, y0, x, y = new_box.bounds
         width = x - x0
         height = y - y0

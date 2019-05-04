@@ -40,7 +40,7 @@ class LatexBuilder:
         d = self._distance(x1, y1, x2, y2)
         phi = self._phi(x1, y1, x2, y2)
 
-        return d < 50 and abs(phi) < np.pi / 16
+        return d < 2 * image_size and abs(phi) < np.pi / 16
 
     def _distance(self, x1, y1, x2, y2):
         return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
@@ -223,8 +223,8 @@ class PowerReducer(Reducer):
     def get_subregions(self, operator_segment, region):
         x = operator_segment.region.x
         y = operator_segment.region.y
-        first = region.left_subregion(x).subregion_below(y)
-        second = region.right_subregion(x).subregion_above(y)
+        first = region.left_subregion(x)
+        second = region.right_subregion(x)
         return first, second
 
     def apply_operation(self, op1, op2):

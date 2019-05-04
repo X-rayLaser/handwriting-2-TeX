@@ -36,10 +36,11 @@ def recognize(segments, model):
     res = []
 
     for segment in segments:
-        x, y = segment.bounding_box.xy_center
         region = segment.bounding_box
 
-        if segment.bounding_box.width > 45 and segment.bounding_box.height < image_size / 2:
+        if segment.bounding_box.width > 70:
+            res.append(Primitive('div', region))
+        elif segment.bounding_box.width > 45 and segment.bounding_box.height < image_size / 8:
             res.append(Primitive('div', region))
         else:
             category_class = feed_x(segment.pixels, model)
