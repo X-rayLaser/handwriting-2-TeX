@@ -222,12 +222,12 @@ class LatexConstructionTests(unittest.TestCase):
 
     def test_number1_over_number2(self):
         num1_segments = self.create_number_segments(200, 200, '43')
-        minus_segment = Primitive.new_primitive('div', 198, 260)
-        num2_segments = self.create_number_segments(202, 320, '538')
+        div_segment = Primitive.new_primitive('div', 198, 260)
+        num2_segments = self.create_number_segments(198, 320, '53')
 
-        segments = num1_segments + [minus_segment] + num2_segments
+        segments = num1_segments + [div_segment] + num2_segments
         latex = construct_latex(segments=segments, width=500, height=500)
-        self.assertEqual(latex, '\\\\frac{43}{538}')
+        self.assertEqual(latex, '\\\\frac{43}{53}')
 
     def create_number_segments(self, x, y, digits):
         segments = []
@@ -239,9 +239,9 @@ class LatexConstructionTests(unittest.TestCase):
 
     def test_digit_to_the_digit_power(self):
         segments = [Primitive.new_primitive('7', 225, 340),
-                    Primitive.new_primitive('3', 240, 380)]
+                    Primitive.new_primitive('3', 250, 280)]
         latex = construct_latex(segments=segments, width=500, height=500)
-        self.assertEqual(latex, '{7}^{3}')
+        self.assertEqual(latex, '7^{3}')
 
 
 class SplitIntervalTests(unittest.TestCase):

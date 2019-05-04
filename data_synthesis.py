@@ -380,7 +380,7 @@ class DrawDifference(DrawExpression):
 
 class DrawProduct(DrawExpression):
     def combined_latex(self, latex1, latex2):
-        return '{} x {}'.format(latex1, latex2)
+        return '{} * {}'.format(latex1, latex2)
 
 
 class DrawFraction(DrawExpression):

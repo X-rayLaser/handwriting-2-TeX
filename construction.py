@@ -55,9 +55,8 @@ class LatexBuilder:
         remaining = list(digits)
         remaining.reverse()
         digit = remaining.pop()
-
-        current_number = RecognizedNumber()
-        current_number.add(digit)
+        region = digit.region
+        current_number = RecognizedNumber(region, digit.text)
         while remaining:
             digit = self._nearest_neighbor(remaining, digit)
 
@@ -65,7 +64,9 @@ class LatexBuilder:
                 return current_number, remaining
 
             remaining.remove(digit)
-            current_number.add(digit)
+
+            single_digit_number = RecognizedNumber(digit.region, digit.text)
+            current_number = current_number.concatenate(single_digit_number)
 
         return current_number, remaining
 
@@ -83,31 +84,6 @@ class LatexBuilder:
 
         return numbers
 
-    def recognize_powers(self, numbers):
-        pows = []
-        numbers_in_pow = set()
-        for i in range(len(numbers)):
-            for j in range(len(numbers)):
-                a = numbers[i]
-                b = numbers[j]
-                if a.is_power_of(b):
-                    # todo: more robust way to calculate region
-
-                    region = RectangularRegion(
-                        x=a.left_most_x - image_size / 2.0, y=a.y - image_size / 2.0,
-                        width=b.right_most_x - a.left_most_x,
-                        height=image_size * 2
-                    )
-                    p = MathSegment(region=region, latex='{}^{{{}}}'.format(a.number, b.number))
-                    pows.append(p)
-                    numbers_in_pow.add(a.number)
-                    numbers_in_pow.add(b.number)
-
-        rest = [MathSegment(region=n.region, latex='{}'.format(n.number)) for n in numbers if n.number not in numbers_in_pow]
-
-        res = pows + rest
-        return res
-
 
 class Reducer:
     def reduce(self, segments, region):
@@ -121,6 +97,7 @@ class Reducer:
             self.remove_operator(remaining_segments, operator_segment)
 
             first_subregion, second_subregion = self.get_subregions(operator_segment, region)
+
             first_segment_list = self.segments_of_region(remaining_segments, first_subregion)
             second_segment_list = self.segments_of_region(remaining_segments, second_subregion)
 
@@ -228,10 +205,38 @@ class DifferenceReducer(HorizontalReducer):
         return op1.get_difference(op2)
 
 
-def get_powers(segments, region):
-    builder = LatexBuilder()
-    numbers = builder.recognize_numbers(segments)
-    return builder.recognize_powers(numbers)
+class PowerReducer(Reducer):
+    def next_math_operator(self, segments, region):
+        for i in range(len(segments)):
+            for j in range(len(segments)):
+                a = segments[i]
+                b = segments[j]
+                if a.is_power_of(b):
+                    dx = b.left_most_x - a.right_most_x
+                    dy = a.region.y - (b.region.y + b.region.height)
+                    x = a.right_most_x + dx / 2.0
+                    y = a.y - dy / 2.0
+                    point_region = RectangularRegion(x, y, 0, 0)
+                    dummy = MathSegment(point_region, latex='')
+                    return dummy
+
+    def get_subregions(self, operator_segment, region):
+        x = operator_segment.region.x
+        y = operator_segment.region.y
+        first = region.left_subregion(x).subregion_below(y)
+        second = region.right_subregion(x).subregion_above(y)
+        return first, second
+
+    def apply_operation(self, op1, op2):
+        return op1.get_power(op2)
+
+    def remove_operator(self, segments, operator_segment):
+        pass
+
+
+def get_powers(numbers, region):
+    reducer = PowerReducer()
+    return reducer.reduce(numbers, region)
 
 
 def get_fractions(segments, region):
@@ -254,49 +259,59 @@ def get_products(segments, region):
     return reducer.reduce(segments, region)
 
 
-def construct_latex(segments, width, height):
-    region = RectangularRegion(0, 0, width, height)
-
-    # todo: move this line back to construct function
-    power_segments = get_powers(segments, region)
-
+def discriminate_primitives(primitives):
     sign_segments = []
+    digits = []
 
     from building_blocks import DivisionOperator, AdditionOperator, DifferenceOperator, ProductOperator
-    for seg in segments:
+    for seg in primitives:
         if not seg.is_digit():
             width = image_size
             height = image_size
-            if seg.digit == '+':
+            if seg.text == '+':
                 cls_name = AdditionOperator
-            elif seg.digit == '-':
+            elif seg.text == '-':
                 cls_name = DifferenceOperator
-            elif seg.digit == 'times':
+            elif seg.text == 'times':
                 cls_name = ProductOperator
-            elif seg.digit == 'div':
+            elif seg.text == 'div':
                 cls_name = DivisionOperator
                 height = 0
                 width = seg.region.width
             else:
-                raise Exception('WOooowoow! digit is {}'.format(seg.digit))
+                raise Exception('WOooowoow! digit is {}'.format(seg.text))
 
-            top_left_x = seg.x - width / 2.0
-            top_left_y = seg.y - height / 2.0
+            top_left_x = seg.x
+            top_left_y = seg.y
             sign_segments.append(cls_name(
                 region=RectangularRegion(top_left_x, top_left_y, width, height)
             ))
+        else:
+            digits.append(seg)
 
-    result = construct(power_segments + sign_segments, region)
+    return sign_segments, digits
+
+
+def construct_latex(segments, width, height):
+    region = RectangularRegion(0, 0, width, height)
+
+    sign_segments, digits = discriminate_primitives(segments)
+
+    builder = LatexBuilder()
+    numbers = builder.recognize_numbers(digits)
+
+    all_segments = numbers + sign_segments
+    result = construct(all_segments, region)
     return result.latex
 
 
 def construct(segments, region):
     # todo: make line below work
-    #segments = get_powers(segments, region)
     segments = get_fractions(segments, region)
     segments = get_sums(segments, region)
     segments = get_differences(segments, region)
     segments = get_products(segments, region)
+    segments = get_powers(segments, region)
 
     if segments:
         return segments[0]

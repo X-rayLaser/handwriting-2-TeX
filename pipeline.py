@@ -17,9 +17,9 @@ def image_to_latex(image, model):
     from construction import construct_latex
     segments = extract_segments(image)
 
-    digits = recognize(segments, model)
+    primitives = recognize(segments, model)
 
-    return construct_latex(digits, image.shape[1], image.shape[0])
+    return construct_latex(primitives, image.shape[1], image.shape[0])
 
 
 def feed_x(x, model):
@@ -39,11 +39,11 @@ def recognize(segments, model):
         x, y = segment.bounding_box.xy_center
         region = segment.bounding_box
 
-        if segment.bounding_box.width > 45:
+        if segment.bounding_box.width > 45 and segment.bounding_box.height < image_size / 2:
             res.append(Primitive('div', region))
         else:
             category_class = feed_x(segment.pixels, model)
-            res.append(Primitive.new_primitive(category_class, x, y))
+            res.append(Primitive(category_class, segment.bounding_box))
 
     return res
 
@@ -81,6 +81,7 @@ if __name__ == '__main__':
         if latex == predicted_latex:
             correct += 1
         else:
+            visualize_image(image)
             print('Invalid recognition: {} -> {}'.format(latex,
                                                          predicted_latex))
 

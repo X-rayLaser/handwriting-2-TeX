@@ -1,73 +1,113 @@
 import numpy as np
 
 
+class MathSegment:
+    def __init__(self, region, latex):
+        self.latex = latex
+        self.region = region
+
+    def get_difference(self, segment):
+        region = self.region.concatenate(segment)
+        latex = '{} - {}'.format(self.latex, segment.latex)
+        return MathSegment(region=region, latex=latex)
+
+    def get_sum(self, segment):
+        region = self.region.concatenate(segment)
+        latex = '{} + {}'.format(self.latex, segment.latex)
+        return MathSegment(region=region, latex=latex)
+
+    def get_fraction(self, segment):
+        region = self.region.concatenate(segment)
+        latex = '\\\\frac{{{}}}{{{}}}'.format(self.latex, segment.latex)
+        return MathSegment(region=region, latex=latex)
+
+    def get_product(self, segment):
+        region = self.region.concatenate(segment)
+        latex = '{} * {}'.format(self.latex, segment.latex)
+        return MathSegment(region=region, latex=latex)
+
+    def get_power(self, segment):
+        region = self.region.concatenate(segment)
+        latex = '{}^{{{}}}'.format(self.latex, segment.latex)
+        return MathSegment(region=region, latex=latex)
+
+    def is_power_of(self, segment):
+        from config import image_size
+
+        threshold = 3 * image_size
+        dx = segment.left_most_x - self.right_most_x
+
+        dy = self.region.y - (segment.region.y + self.region.height)
+
+        dy_min = 0
+        return dx > - image_size / 2.0 and dx < threshold and dy > dy_min and dy < image_size * 4
+
+    def concatenate(self, segment):
+        region = self.region.concatenate(segment)
+        return MathSegment(region=region, latex=self.latex + segment.latex)
+
+    def is_division_sign(self):
+        return False
+
+    def is_product_sign(self):
+        return False
+
+    def is_plus_sign(self):
+        return False
+
+    def is_minus_sign(self):
+        return False
+
+    @property
+    def right_most_x(self):
+        return self.region.x + self.region.width
+
+    @property
+    def left_most_x(self):
+        return self.region.x
+
+
 class Primitive:
-    def __init__(self, digit, region):
-        self.digit = digit
-        x, y = region.xy_center
-        self.x = x
-        self.y = y
+    def __init__(self, text, region):
+        self.text = text
         self.region = region
 
     def is_digit(self):
-        return self.digit not in ['+', '-', 'times', 'div']
+        return self.text in list('0123456789')
+
+    @property
+    def x(self):
+        return self.region.x
+
+    @property
+    def y(self):
+        return self.region.y
 
     @staticmethod
     def new_primitive(digit, x, y):
         from config import image_size
 
-        region = RectangularRegion(x - image_size / 2,
-                                   y - image_size / 2, image_size, image_size)
+        region = RectangularRegion(x - image_size / 2.0,
+                                   y - image_size / 2.0, image_size, image_size)
         return Primitive(digit, region)
 
 
-class RecognizedNumber:
-    def __init__(self):
-        self._digits = ''
-        self._locations = []
+class RecognizedNumber(MathSegment):
+    def __init__(self, region, digits=''):
+        super().__init__(region, digits)
 
-    def is_power_of(self, number):
-        threshold = 28
-        dx = number.left_most_x - self.right_most_x
-        dy = self.y - number.y
-
-        return dx > -8 and dx < threshold and dy > 20 and dy < 40
+    def concatenate(self, segment):
+        region = self.region.concatenate(segment)
+        return RecognizedNumber(region=region, digits=self.latex + segment.latex)
 
     @property
     def number(self):
-        return int(self._digits)
-
-    @property
-    def right_most_x(self):
-        return max([x for x, y in self._locations])
-
-    @property
-    def left_most_x(self):
-        return min([x for x, y in self._locations])
+        return int(self.latex)
 
     @property
     def y(self):
-        return np.mean(np.array([y for x, y in self._locations]))
-
-    def add(self, digit_block):
-        self._digits += str(digit_block.digit)
-        x = digit_block.x
-        y = digit_block.y
-        self._locations.append((x, y))
-
-    @property
-    def region(self):
-        width = abs(self.right_most_x - self.left_most_x)
-        import config
-        height = config.image_size
-        x = self.left_most_x - config.image_size / 2.0
-        y = self.y - height / 2.0
-
-        return RectangularRegion(
-            x=x, y=y,
-            width=width,
-            height=height
-        )
+        xc, yc = self.region.xy_center
+        return yc
 
 
 class RectangularRegion:
@@ -133,7 +173,6 @@ class RectangularRegion:
         from shapely.geometry import box
 
         region = segment.region
-        #b = box(region.x, region.y, region.x + region.width, region.y + region.height)
 
         x, y = region.xy_center
         b = box(x, y, x + 1, y + 1)
@@ -147,53 +186,6 @@ class RectangularRegion:
         ytop = min(y0, self.y)
         ybottom = max(y, self.y + self.height)
         return RectangularRegion(xleft, ytop, xright - xleft, ybottom - ytop)
-
-
-class MathSegment:
-    def __init__(self, region, latex):
-        self.latex = latex
-        self.region = region
-
-    def get_difference(self, segment):
-        region = self.region.concatenate(segment)
-        latex = '{} - {}'.format(self.latex, segment.latex)
-        return MathSegment(region=region, latex=latex)
-
-    def get_sum(self, segment):
-        region = self.region.concatenate(segment)
-        latex = '{} + {}'.format(self.latex, segment.latex)
-        return MathSegment(region=region, latex=latex)
-
-    def get_fraction(self, segment):
-        region = self.region.concatenate(segment)
-        latex = '\\\\frac{{{}}}{{{}}}'.format(self.latex, segment.latex)
-        return MathSegment(region=region, latex=latex)
-
-    def get_product(self, segment):
-        region = self.region.concatenate(segment)
-        latex = '{} * {}'.format(self.latex, segment.latex)
-        return MathSegment(region=region, latex=latex)
-
-    def get_power(self, segment):
-        region = self.region.concatenate(segment)
-        latex = '{}^{}'.format(self.latex, segment.latex)
-        return MathSegment(region=region, latex=latex)
-
-    def concatenate(self, segment):
-        region = self.region.concatenate(segment)
-        return MathSegment(region=region, latex=self.latex + segment.latex)
-
-    def is_division_sign(self):
-        return False
-
-    def is_product_sign(self):
-        return False
-
-    def is_plus_sign(self):
-        return False
-
-    def is_minus_sign(self):
-        return False
 
 
 class DivisionOperator(MathSegment):

@@ -23,9 +23,9 @@ class Recognizer(QtCore.QThread):
         return job
 
     def run(self):
-        from models import get_math_symbols_model
+        from models import get_model
 
-        model = get_math_symbols_model()
+        model = get_model()
 
         while True:
             image = self.get_job()
