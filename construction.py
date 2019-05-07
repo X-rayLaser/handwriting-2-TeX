@@ -6,85 +6,6 @@ import config
 image_size = config.image_size
 
 
-class LatexBuilder:
-    def generate_latex(self, segments):
-        numbers = self.recognize_numbers(segments)
-
-        if numbers:
-            pows = [pow.latex for pow in self.recognize_powers(numbers)]
-            return ' '.join(pows)
-
-    def _nearest_neighbor(self, digits, current_digit):
-        x = current_digit.x
-        y = current_digit.y
-        filtered = []
-        remaining = []
-        for digit_segment in digits:
-            if abs(self._phi(x, y, digit_segment.x, digit_segment.y)) < np.pi / 8:
-                filtered.append(digit_segment)
-            else:
-                remaining.append(digit_segment)
-
-        def distance(digit_segment):
-            return self._distance(x, y, digit_segment.x, digit_segment.y)
-
-        sorted_digits = sorted(filtered, key=distance, reverse=True)
-        if not sorted_digits:
-            return
-
-        first_digit = sorted_digits.pop()
-        if self._are_neighbors(x, y, first_digit.x, first_digit.y):
-            return first_digit
-
-    def _are_neighbors(self, x1, y1, x2, y2):
-        d = self._distance(x1, y1, x2, y2)
-        phi = self._phi(x1, y1, x2, y2)
-
-        return d < 2 * image_size and abs(phi) < np.pi / 16
-
-    def _distance(self, x1, y1, x2, y2):
-        return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-
-    def _phi(self, x1, y1, x2, y2):
-        dy = y2 - y1
-        dx = x2 - x1
-        epsilon = 10 ** (-8)
-        return np.arctan(dy / (dx + epsilon))
-
-    def recognize_number(self, digits):
-        remaining = list(digits)
-        remaining.reverse()
-        digit = remaining.pop()
-        region = digit.region
-        current_number = RecognizedNumber(region, digit.text)
-        while remaining:
-            digit = self._nearest_neighbor(remaining, digit)
-
-            if digit is None:
-                return current_number, remaining
-
-            remaining.remove(digit)
-
-            single_digit_number = RecognizedNumber(digit.region, digit.text)
-            current_number = current_number.concatenate(single_digit_number)
-
-        return current_number, remaining
-
-    def recognize_numbers(self, digits):
-        numbers = []
-
-        rem = [elem for elem in list(digits) if elem.is_digit()]
-        while rem:
-            sorted_digits = sorted(rem, key=lambda digit: (digit.x, digit.y))
-
-            number, rem = self.recognize_number(sorted_digits)
-            numbers.append(number)
-            if not rem:
-                break
-
-        return numbers
-
-
 class Reducer:
     def reduce(self, segments, region):
         res = []
@@ -131,18 +52,6 @@ class Reducer:
         segments.remove(operator_segment)
 
 
-class HorizontalReducer(Reducer):
-    def any_operator_segment(self, f, segments):
-        for segment in segments:
-            if f(segment):
-                return segment
-
-    def get_subregions(self, operator_segment, region):
-        left_one = region.left_subregion(operator_segment.region.x)
-        right_one = region.right_subregion(operator_segment.region.x)
-        return left_one, right_one
-
-
 class FractionReducer(Reducer):
     def find_longest_division_line(self, segments):
         divlen = 0
@@ -175,36 +84,6 @@ class FractionReducer(Reducer):
         return op1.get_fraction(op2)
 
 
-class ProductReducer(HorizontalReducer):
-    def next_math_operator(self, segments, region):
-        return self.any_operator_segment(
-            lambda seg: seg.is_product_sign(), segments
-        )
-
-    def apply_operation(self, op1, op2):
-        return op1.get_product(op2)
-
-
-class SumReducer(HorizontalReducer):
-    def next_math_operator(self, segments, region):
-        return self.any_operator_segment(
-            lambda seg: seg.is_plus_sign(), segments
-        )
-
-    def apply_operation(self, op1, op2):
-        return op1.get_sum(op2)
-
-
-class DifferenceReducer(HorizontalReducer):
-    def next_math_operator(self, segments, region):
-        return self.any_operator_segment(
-            lambda seg: seg.is_minus_sign(), segments
-        )
-
-    def apply_operation(self, op1, op2):
-        return op1.get_difference(op2)
-
-
 class PowerReducer(Reducer):
     def next_math_operator(self, segments, region):
         for i in range(len(segments)):
@@ -232,31 +111,6 @@ class PowerReducer(Reducer):
 
     def remove_operator(self, segments, operator_segment):
         pass
-
-
-def get_powers(numbers, region):
-    reducer = PowerReducer()
-    return reducer.reduce(numbers, region)
-
-
-def get_fractions(segments, region):
-    reducer = FractionReducer()
-    return reducer.reduce(segments, region)
-
-
-def get_sums(segments, region=None):
-    reducer = SumReducer()
-    return reducer.reduce(segments, region)
-
-
-def get_differences(segments, region):
-    reducer = DifferenceReducer()
-    return reducer.reduce(segments, region)
-
-
-def get_products(segments, region):
-    reducer = ProductReducer()
-    return reducer.reduce(segments, region)
 
 
 def discriminate_primitives(primitives):
@@ -287,7 +141,7 @@ def discriminate_primitives(primitives):
                 region=RectangularRegion(top_left_x, top_left_y, width, height)
             ))
         else:
-            digits.append(seg)
+            digits.append(RecognizedNumber(seg.region, seg.text))
 
     return sign_segments, digits
 
@@ -296,24 +150,141 @@ def construct_latex(segments, width, height):
     region = RectangularRegion(0, 0, width, height)
 
     sign_segments, digits = discriminate_primitives(segments)
-
-    builder = LatexBuilder()
-    numbers = builder.recognize_numbers(digits)
-
-    all_segments = numbers + sign_segments
-    result = construct(all_segments, region)
-    return result.latex
+    all_segments = digits + sign_segments
+    return construct(all_segments, region).latex
 
 
 def construct(segments, region):
-    # todo: make line below work
+    print('segments count:', len(segments))
     segments = get_fractions(segments, region)
-    segments = get_sums(segments, region)
-    segments = get_differences(segments, region)
-    segments = get_products(segments, region)
-    segments = get_powers(segments, region)
+    return reduce_terms(segments, region)
 
-    if segments:
-        return segments[0]
 
-    return MathSegment(region, '?')
+def get_powers(numbers, region):
+    reducer = PowerReducer()
+    return reducer.reduce(numbers, region)
+
+
+def get_fractions(segments, region):
+    reducer = FractionReducer()
+    return reducer.reduce(segments, region)
+
+
+def reduce_terms(segments, region):
+    print(len(segments))
+    if not segments:
+        return MathSegment(region, '?')
+
+    def sortf(segment):
+        x, y = segment.region.xy_center
+        return x, y
+
+    left_to_right = sorted(segments, key=sortf)
+
+    from building_blocks import AdditionOperator, DifferenceOperator, ProductOperator
+
+    def is_sign(segment):
+        return isinstance(segment, (AdditionOperator, DifferenceOperator, ProductOperator))
+
+    sign_segments = list(filter(is_sign, left_to_right))
+
+    if len(sign_segments) == 0:
+        return construct_power(left_to_right, region)
+
+    operator_segment = sign_segments[0]
+
+    left_subregion = region.left_subregion(operator_segment.region.x)
+    right_subregion = region.right_subregion(
+        operator_segment.region.x + operator_segment.region.width
+    )
+
+    left_subregion_segments = [seg for seg in left_to_right if seg in left_subregion]
+    right_subregion_segments = [seg for seg in left_to_right if seg in right_subregion]
+
+    first_operand = construct_power(left_subregion_segments, region=left_subregion)
+    second_operand = reduce_terms(right_subregion_segments, region=right_subregion)
+
+    if operator_segment.is_product_sign():
+        return first_operand.get_product(second_operand)
+    elif operator_segment.is_plus_sign():
+        return first_operand.get_sum(second_operand)
+    elif operator_segment.is_minus_sign():
+        return first_operand.get_difference(second_operand)
+    else:
+        raise Exception('Unknown sign ' + operator_segment.latex)
+
+
+def construct_numbers(segments, region):
+    def f(digit):
+        x, y = digit.region.xy_center
+        return x, y
+
+    sorted_by_xy = sorted(segments, key=f, reverse=True)
+
+    if len(sorted_by_xy) == 0:
+        print('oopese')
+        return []
+
+    previous_digit = sorted_by_xy.pop()
+    numbers = [
+        previous_digit
+    ]
+
+    while len(sorted_by_xy) > 0:
+        single_digit_number = sorted_by_xy.pop()
+
+        x1, y1 = previous_digit.region.xy_center
+
+        x2, y2 = single_digit_number.region.xy_center
+
+        if are_neighbors(x1, y1, x2, y2):
+            current_number = numbers[-1]
+            numbers[-1] = current_number.concatenate(single_digit_number)
+        else:
+            numbers.append(single_digit_number)
+
+        previous_digit = single_digit_number
+
+    return numbers
+
+
+def construct_power(segments, region):
+    if not segments:
+        return MathSegment(region, '?')
+
+    numbers = construct_numbers(segments, region)
+
+    if len(numbers) == 1:
+        return numbers[0]
+
+    if not numbers:
+        return MathSegment(region, '?')
+
+    assert len(numbers) == 2
+
+    a = numbers[0]
+    b = numbers[1]
+    if a.is_power_of(b):
+        return a.get_power(b)
+    elif b.is_power_of(b):
+        return b.get_power(b)
+    else:
+        return numbers[0]
+
+
+def are_neighbors(x1, y1, x2, y2):
+    d = euclidean_distance(x1, y1, x2, y2)
+    phi = angle(x1, y1, x2, y2)
+
+    return d < 10 * image_size and abs(phi) < np.pi / 16
+
+
+def euclidean_distance(x1, y1, x2, y2):
+    return np.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+
+def angle(x1, y1, x2, y2):
+    dy = y2 - y1
+    dx = x2 - x1
+    epsilon = 10 ** (-8)
+    return np.arctan(dy / (dx + epsilon))
