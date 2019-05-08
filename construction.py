@@ -155,7 +155,6 @@ def construct_latex(segments, width, height):
 
 
 def construct(segments, region):
-    print('segments count:', len(segments))
     segments = get_fractions(segments, region)
     return reduce_terms(segments, region)
 
@@ -171,7 +170,6 @@ def get_fractions(segments, region):
 
 
 def reduce_terms(segments, region):
-    print(len(segments))
     if not segments:
         return MathSegment(region, '?')
 
@@ -222,7 +220,6 @@ def construct_numbers(segments, region):
     sorted_by_xy = sorted(segments, key=f, reverse=True)
 
     if len(sorted_by_xy) == 0:
-        print('oopese')
         return []
 
     previous_digit = sorted_by_xy.pop()
@@ -260,7 +257,8 @@ def construct_power(segments, region):
     if not numbers:
         return MathSegment(region, '?')
 
-    assert len(numbers) == 2
+    if len(numbers) > 2:
+        return numbers[0]
 
     a = numbers[0]
     b = numbers[1]

@@ -12,6 +12,7 @@ min_size = image_size * 3
 
 
 def augmented_generator():
+    return ImageDataGenerator()
     return ImageDataGenerator(rotation_range=20,
                               zoom_range=[0.95, 1.4],
                               height_shift_range=0.02,
@@ -165,6 +166,14 @@ class Canvas:
 
     def _overlay(self, img, x, y):
         overlay_image(self._res_img, img, x, y)
+
+    def crop_area(self, x, y):
+        a = np.zeros((image_size, image_size))
+        return self.image_data[y:y+45, x:x+45]
+        return a
+
+    def draw_background(self, x, y):
+        pass
 
     def draw_random_digit(self, x, y):
         digit = str(random.randint(0, 9))
@@ -397,9 +406,51 @@ class DrawFraction(DrawExpression):
         return '\\\\frac{{{}}}{{{}}}'.format(latex1, latex2)
 
 
+def generate_data(n, csv_dir):
+    num_classes = 14
+    from dataset_utils import index_to_class
+
+    dx = 30
+    dy = 45
+
+    n = 10
+
+    canvas = Canvas(dx * (n+1), dy * (n+1), csv_dir)
+
+    p_skip = 0.3
+
+    centers = []
+
+    for i in range(n):
+        if random.random() < p_skip:
+            continue
+
+        for j in range(n):
+            if random.random() >= p_skip:
+                y = i * dy
+                x = j * dx
+
+                centers.append((x, y))
+
+                category_index = random.choice(list(range(num_classes)))
+                category = index_to_class[category_index]
+                canvas.draw_random_class_image(x, y, category)
+
+    # todo: create training set and save it
+    for x, y in centers:
+        img = canvas.crop_area(x, y)
+
+    for i in range(20):
+        x = random.randint(0, n * dx)
+        y = random.randint(0, n * dy)
+        img = canvas.crop_area(x, y)
+
+    return canvas.image_data
+
+
 if __name__ == '__main__':
+    csv_dir = 'datasets/digits_and_operators_csv/dev'
     synthesizer = Synthesizer('datasets/digits_and_operators_csv/dev')
     img, latex = synthesizer.synthesize_example()
-
-    visualize_image(img)
     print(latex)
+    visualize_image(img)
