@@ -57,7 +57,7 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
                             grid_size=grid_size, num_classes=num_classes)
 
     for i in range(num_examples):
-        n = 3
+        n = 10
         input, output = gen.make_example(elements=n)
         assert len(input.flatten().tolist()) == 350 * 350
         assert len(output) == grid_size * grid_size * 6, len(output)

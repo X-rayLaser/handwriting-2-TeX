@@ -31,8 +31,11 @@ class YoloDataGenerator:
         return index, c
 
     def choose_global_position(self):
-        x = random.randint(0, self.img_width - 1)
-        y = random.randint(0, self.img_height - 1)
+        min_pos = 45 // 2
+        max_x = self.img_width - min_pos
+        max_y = self.img_height - min_pos
+        x = random.randint(min_pos, max_x)
+        y = random.randint(min_pos, max_y)
 
         return x, y
 

@@ -76,9 +76,13 @@ def overlay_image(canvas, img, x, y):
 
 
 def visualize_image(a):
-    from PIL import Image
-    im = Image.frombytes('L', (a.shape[1], a.shape[0]), a.tobytes())
+    im = array_to_image(a)
     im.show()
+
+
+def array_to_image(a):
+    from PIL import Image
+    return Image.frombytes('L', (a.shape[1], a.shape[0]), a.tobytes())
 
 
 def straight_line(n, slope, b, waviness):
