@@ -1,15 +1,74 @@
+def get_feature_extractor(pretrained_model_path='keras_model.h5'):
+    from keras import Model, Input
+
+    model = initialize_math_recognition_model()
+    model.load_weights(pretrained_model_path)
+    model.pop()
+    model.pop()
+    model.pop()
+    model.pop()
+    model.pop()
+    model.pop()
+    model.pop()
+    model.pop()
+
+    inp = Input(shape=(350, 350, 1))
+
+    x = inp
+
+    for layer in model.layers:
+        x = layer(x)
+
+    out = x
+
+    new_model = Model(input=inp, output=out)
+
+    new_model.summary(line_length=150)
+
+    return new_model
+
+
+def get_regression_model(input_shape, output_shape):
+    from keras import Sequential
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Conv2D, MaxPool2D
+
+    drop_prob = 0.2
+
+    model = Sequential()
+
+    model.add(Flatten(input_shape=input_shape))
+
+    model.add(Dropout(drop_prob))
+    model.add(Dense(units=200, activation='relu', kernel_initializer='he_normal'))
+    model.add(BatchNormalization())
+
+    model.add(Dropout(drop_prob))
+    model.add(Dense(units=100, activation='relu'))
+    model.add(BatchNormalization())
+
+    output_units = 1
+    for dim in output_shape:
+        output_units *= dim
+
+    model.add(Dropout(drop_prob))
+    model.add(Dense(units=output_units, activation='relu', output_shape=output_shape))
+    model.add(BatchNormalization())
+
+    return model
+
+
 def get_model():
     return get_math_symbols_model()
 
 
-def initialize_math_recognition_model():
+def initialize_math_recognition_model(input_shape=(45, 45, 1)):
     from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Conv2D, MaxPool2D
     from keras.models import Sequential
 
     drop_prob = 0.1
 
     model = Sequential()
-    model.add(Conv2D(input_shape=(45, 45, 1), filters=6, kernel_size=(5, 5),
+    model.add(Conv2D(input_shape=input_shape, filters=6, kernel_size=(5, 5),
                      kernel_initializer='he_normal', activation='relu'))
     model.add(BatchNormalization())
 

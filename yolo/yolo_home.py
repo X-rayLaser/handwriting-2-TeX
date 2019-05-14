@@ -69,12 +69,12 @@ class YoloDatasetHome:
         n = get_input_size(self.config)
 
         for row in self.all_rows:
-            xy_list = map(np.uint8, row)
+            xy_list = list(map(np.uint8, row))
             x = xy_list[:n]
             y = xy_list[n:]
             yield x, y
 
-    def flow_with_preload(self, dataset_path, mini_batch_size, normalize=False):
+    def flow_with_preload(self, dataset_path, mini_batch_size=32, normalize=False):
         preloader = Preloader(dataset_path, self.config)
         inputs, outputs = preloader.preload()
 

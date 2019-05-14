@@ -64,30 +64,6 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
         yolo_home.add_example(input, output)
 
 
-def precompute_features(dataset_root, destination):
-    yolo_source = YoloDatasetHome(dataset_root)
-
-    m = yolo_source.config['num_examples']
-    input_config = yolo_source.config['input_config']
-    output_config = yolo_source.config['output_config']
-    training_fraction = yolo_source.config['training_fraction']
-    number_of_parts = yolo_source.config['number_of_parts']
-
-    yolo_destination = YoloDatasetHome.initialize_dataset(destination,
-                                                          num_examples=m,
-                                                          input_config=input_config,
-                                                          output_config=output_config,
-                                                          training_fraction=training_fraction,
-                                                          number_of_parts=number_of_parts)
-
-    for x, y in yolo_source.get_all_examples():
-        #preprocess
-
-        example = np.array([])
-        input, output = example
-        yolo_destination.add_example(input, output)
-
-
 if __name__ == '__main__':
     destination_dir = '../datasets/yolo_dataset'
     csv_dir = '../datasets/digits_and_operators_csv/train'
