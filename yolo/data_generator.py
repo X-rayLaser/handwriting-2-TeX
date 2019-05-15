@@ -72,4 +72,10 @@ class YoloDataGenerator:
                 canvas.draw_random_class_image(x, y, category)
 
         input = canvas.image_data
+
+        temp_vol = YoloVolume.from_raw_data(self.img_width, self.img_height, self.grid_size, self.num_classes, volume.to_raw_data())
+
+        from yolo.draw_bounding_box import draw_boxes
+        draw_boxes(input, self.grid_size, temp_vol.output_volume)
+
         return input, volume.to_raw_data()

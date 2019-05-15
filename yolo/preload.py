@@ -10,12 +10,12 @@ def load_part(args):
 
     dtype = np.uint8
     x_batch = np.zeros((num_examples, input_size), dtype=dtype)
-    y_batch = np.zeros((num_examples, output_size), dtype=dtype)
+    y_batch = np.zeros((num_examples, output_size), dtype=np.uint16)
 
     i = 0
     with open(path, 'r', newline='') as f:
         for row in csv.reader(f):
-            xy = list(map(np.uint8, row))
+            xy = list(map(np.uint16, row))
             x_batch[i, :] = xy[:input_size]
             y_batch[i, :] = xy[input_size:]
             i += 1
@@ -31,7 +31,7 @@ class Preloader:
     def preload(self, max_workers=4):
         m, _ = self._number_of_examples()
         x = np.zeros((m, self._input_size), dtype=np.uint8)
-        y = np.zeros((m, self._output_size), dtype=np.uint8)
+        y = np.zeros((m, self._output_size), dtype=np.uint16)
 
         results = self._parallel_load(max_workers)
 
@@ -64,6 +64,8 @@ class Preloader:
 
     @property
     def _output_size(self):
+        # todo: fix this hardcoding
+        return 200 * 5 + 1
         return get_output_size(self._config)
 
     def _number_of_examples(self):

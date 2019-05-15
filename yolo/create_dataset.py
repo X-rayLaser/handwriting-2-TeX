@@ -59,8 +59,6 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
     for i in range(num_examples):
         n = 10
         input, output = gen.make_example(elements=n)
-        assert len(input.flatten().tolist()) == 350 * 350
-        assert len(output) == grid_size * grid_size * 6, len(output)
         yolo_home.add_example(input, output)
 
 

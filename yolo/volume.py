@@ -2,11 +2,12 @@ import numpy as np
 
 
 class YoloVolume:
-    def __init__(self, image_width, image_height, grid_size, num_classes):
+    def __init__(self, image_width, image_height, grid_size, num_classes, max_boxes=200):
         self.img_width = image_width
         self.img_height = image_height
         self.grid_size = grid_size
         self.num_classes = num_classes
+        self.max_boxes = max_boxes
 
         self._boxes = []
         self._classes = []
@@ -98,24 +99,24 @@ class YoloVolume:
 
     @property
     def compact_volume(self):
-        volume = np.zeros((self.grid_size, self.grid_size, self.depth), dtype=np.uint8)
-
         assert len(self._boxes) == len(self._classes)
+
+        tups = []
 
         for i in range(len(self._classes)):
             box = self._boxes[i]
             label = self._classes[i]
 
-            detection_confidence = 1
-
             xc, yc, width, height = box
-            col, row = self.position_to_grid_cell(xc, yc)
+            print(xc, yc, width, height)
 
-            volume[row, col] = np.concatenate(
-                ([detection_confidence], box, [label])
-            )
+            tups.append((xc, yc, width, height, label))
 
-        return volume
+        size = min(self.max_boxes, len(self._classes))
+        data_array = np.zeros((self.max_boxes, 5), dtype=np.uint16)
+
+        data_array[:size, :] = np.array(tups)[:size, :]
+        return [size] + data_array.flatten().tolist()
 
     @property
     def depth(self):
@@ -134,26 +135,18 @@ class YoloVolume:
 
     def to_raw_data(self):
         vol = self.compact_volume
-        return vol.flatten().tolist()
+        return vol
 
     @staticmethod
     def from_raw_data(image_width, image_height, grid_size, num_classes, raw_data):
+
         volume = YoloVolume(image_width, image_height, grid_size, num_classes)
 
-        score_size = 1
-        box_size = 4
-        label_size = 1
-        tuple_size = score_size + box_size + label_size
-        vol = np.array(raw_data).reshape((grid_size, grid_size, tuple_size))
-        for row in range(grid_size):
-            for col in range(grid_size):
-                score = vol[row, col, 0]
-                if score == 1:
-                    box_start = 1
-                    box_end = 5
-                    label_index = box_end
-                    box = tuple(vol[row, col, box_start:box_end])
-                    class_index = vol[row, col, label_index]
-                    volume.add_item(box, class_index)
+        size = raw_data[0]
+        data = np.array(raw_data[1:]).reshape(-1, 5)
+
+        for xc, yc, width, height, label in data[:size]:
+            box = (xc, yc, width, height)
+            volume.add_item(box, label)
 
         return volume
