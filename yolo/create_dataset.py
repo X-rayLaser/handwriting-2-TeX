@@ -57,7 +57,7 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
                             grid_size=grid_size, num_classes=num_classes)
 
     for i in range(num_examples):
-        n = 10
+        n = 25
         input, output = gen.make_example(elements=n)
         yolo_home.add_example(input, output)
 
@@ -65,18 +65,4 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
 if __name__ == '__main__':
     destination_dir = '../datasets/yolo_dataset'
     csv_dir = '../datasets/digits_and_operators_csv/train'
-    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=5)
-
-    train_dir = os.path.join(destination_dir, 'train')
-
-    yolo_home = YoloDatasetHome(destination_dir)
-    counter = 0
-    for x_batch, y_batch in yolo_home.flow_with_preload(train_dir, mini_batch_size=2):
-        x = x_batch[0]
-        y = y_batch[0]
-        visualize_image(x)
-
-        counter += 1
-
-        if counter > 2:
-            break
+    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=200)

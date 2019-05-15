@@ -6,17 +6,16 @@ from .yolo_utils import get_output_size, get_input_size
 
 
 def load_part(args):
-    path, num_examples, input_size, output_size = args
+    path, num_examples, input_size, output_size, input_dtype = args
 
-    dtype = np.uint8
-    x_batch = np.zeros((num_examples, input_size), dtype=dtype)
+    x_batch = np.zeros((num_examples, input_size), dtype=input_dtype)
     y_batch = np.zeros((num_examples, output_size), dtype=np.uint16)
 
     i = 0
     with open(path, 'r', newline='') as f:
         for row in csv.reader(f):
-            xy = list(map(np.uint16, row))
-            x_batch[i, :] = xy[:input_size]
+            xy = list(map(np.float16, row))
+            x_batch[i, :] = list(map(input_dtype, xy[:input_size]))
             y_batch[i, :] = xy[input_size:]
             i += 1
 
@@ -24,13 +23,14 @@ def load_part(args):
 
 
 class Preloader:
-    def __init__(self, split_dir_path, dataset_config):
+    def __init__(self, split_dir_path, dataset_config, input_dtype=np.uint8):
         self._path = split_dir_path
         self._config = dataset_config
+        self._input_dtype = input_dtype
 
     def preload(self, max_workers=4):
         m, _ = self._number_of_examples()
-        x = np.zeros((m, self._input_size), dtype=np.uint8)
+        x = np.zeros((m, self._input_size), dtype=self._input_dtype)
         y = np.zeros((m, self._output_size), dtype=np.uint16)
 
         results = self._parallel_load(max_workers)
@@ -53,7 +53,7 @@ class Preloader:
         for fname in os.listdir(self._path):
             file_path = os.path.join(self._path, fname)
             num_examples = counts[fname]
-            arg_list.append((file_path, num_examples, self._input_size, self._output_size))
+            arg_list.append((file_path, num_examples, self._input_size, self._output_size, self._input_dtype))
 
         pool = ProcessPoolExecutor(max_workers=max_workers)
         return list(pool.map(load_part, arg_list))

@@ -9,8 +9,9 @@ from .volume import YoloVolume
 
 
 class YoloDatasetHome:
-    def __init__(self, dataset_root):
+    def __init__(self, dataset_root, input_dtype=np.uint8):
         self._dataset_root = dataset_root
+        self._input_dtype = input_dtype
         os.makedirs(self.train_path, exist_ok=True)
         os.makedirs(self.dev_path, exist_ok=True)
         os.makedirs(self.test_path, exist_ok=True)
@@ -75,7 +76,8 @@ class YoloDatasetHome:
             yield x, y
 
     def flow_with_preload(self, dataset_path, mini_batch_size=32, normalize=False):
-        preloader = Preloader(dataset_path, self.config)
+        from dataset_utils import shuffle_data
+        preloader = Preloader(dataset_path, self.config, input_dtype=self._input_dtype)
         inputs, outputs = preloader.preload()
 
         image_width = self.config['input_config']['image_width']
@@ -84,8 +86,7 @@ class YoloDatasetHome:
         num_classes = self.config['output_config']['num_classes']
 
         while True:
-            # todo: shuffling analog (random picking) for without preload case
-            #x, labels = shuffle_data(x, labels)
+            inputs, outputs = shuffle_data(inputs, outputs)
 
             for i in range(0, outputs.shape[0], mini_batch_size):
                 x_batch = inputs[i:i + mini_batch_size, :]
@@ -102,6 +103,16 @@ class YoloDatasetHome:
                 y_batch = [vol.output_volume for vol in volumes]
 
                 yield x_batch, np.array(y_batch)
+
+    def dataset_size(self, dataset_path):
+        size = 0
+        for fname in os.listdir(dataset_path):
+            path = os.path.join(dataset_path, fname)
+            with open(path, 'r', newline='') as f:
+                reader = csv.reader(f, delimiter=',')
+                for _ in reader:
+                    size += 1
+        return size
 
     @property
     def all_rows(self):

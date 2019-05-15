@@ -1,11 +1,10 @@
-def draw_boxes(a, grid_size, output_volume):
+def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
     from PIL.ImageDraw import ImageDraw
     from data_synthesis import array_to_image
 
     height, width = a.shape
     cell_height = height / grid_size
     cell_width = width / grid_size
-    print(height, width, cell_height, cell_width, output_volume.shape)
 
     image = array_to_image(a)
 
@@ -13,13 +12,11 @@ def draw_boxes(a, grid_size, output_volume):
 
     for row in range(grid_size):
         for col in range(grid_size):
-            if output_volume[row, col, 0] > 0.6:
-                print(output_volume[row, col])
+            if output_volume[row, col, 0] > p_treshold:
                 cell_x = col * cell_width
                 cell_y = row * cell_height
                 box = output_volume[row, col][1:5]
                 xc, yc, w, h = box
-                print(xc, yc, w, h)
 
                 xc_abs = cell_x + xc * cell_width
                 yc_abs = cell_y + yc * cell_height
@@ -30,10 +27,8 @@ def draw_boxes(a, grid_size, output_volume):
                 x = int(round(xc_abs - w_abs / 2))
                 y = int(round(yc_abs - h_abs / 2))
 
-                print(x, y, w_abs, h_abs)
-
                 xy = [(x, y), (x + w_abs, y + h_abs)]
-                canvas.rectangle(xy, width=4, outline=128)
+                canvas.rectangle(xy, width=2, outline=128)
 
     image.show()
 

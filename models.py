@@ -23,26 +23,24 @@ def get_feature_extractor(pretrained_model_path='keras_model.h5'):
 
     new_model = Model(input=inp, output=out)
 
-    new_model.summary(line_length=150)
-
     return new_model
 
 
 def get_regression_model(input_shape, output_shape):
     from keras import Sequential
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Conv2D, MaxPool2D
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Reshape, Conv2D, MaxPool2D
 
     drop_prob = 0.2
 
     model = Sequential()
 
-    model.add(Flatten(input_shape=input_shape))
-
-    model.add(Dropout(drop_prob))
-    model.add(Dense(units=200, activation='relu', kernel_initializer='he_normal'))
+    model.add(Conv2D(filters=96, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
+    model.add(MaxPool2D())
     model.add(BatchNormalization())
+    model.add(Flatten())
 
-    model.add(Dropout(drop_prob))
+    model.add(Dense(units=100, activation='relu'))
+    model.add(BatchNormalization())
     model.add(Dense(units=100, activation='relu'))
     model.add(BatchNormalization())
 
@@ -50,9 +48,8 @@ def get_regression_model(input_shape, output_shape):
     for dim in output_shape:
         output_units *= dim
 
-    model.add(Dropout(drop_prob))
-    model.add(Dense(units=output_units, activation='relu', output_shape=output_shape))
-    model.add(BatchNormalization())
+    model.add(Dense(units=output_units, activation='relu'))
+    model.add(Reshape(target_shape=output_shape))
 
     return model
 
