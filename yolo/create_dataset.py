@@ -25,9 +25,9 @@ def get_output_size(config):
 
 
 def generate_dataset(primitives_source, destination_dir, num_examples):
-    image_width = 350
-    image_height = 350
-    grid_size = 9
+    image_width = 150
+    image_height = 150
+    grid_size = 5
     num_classes = 14
 
     input_config = {
@@ -57,12 +57,13 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
                             grid_size=grid_size, num_classes=num_classes)
 
     for i in range(num_examples):
-        n = 25
+        n = 6
         input, output = gen.make_example(elements=n)
         yolo_home.add_example(input, output)
+        print('Created examples {} out of {}'.format(i, num_examples))
 
 
 if __name__ == '__main__':
     destination_dir = '../datasets/yolo_dataset'
     csv_dir = '../datasets/digits_and_operators_csv/train'
-    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=200)
+    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=250)

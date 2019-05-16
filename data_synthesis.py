@@ -161,6 +161,9 @@ class Canvas:
         )
         self._res_img = np.zeros((height, width), dtype=np.uint8)
 
+    def add_noise(self, mu=0, sigma=3):
+        self._res_img += np.random.randint(0, 35, self._res_img.shape)
+
     @property
     def image_data(self):
         return self._res_img
@@ -172,9 +175,7 @@ class Canvas:
         overlay_image(self._res_img, img, x, y)
 
     def crop_area(self, x, y):
-        a = np.zeros((image_size, image_size))
         return self.image_data[y:y+45, x:x+45]
-        return a
 
     def draw_background(self, x, y):
         pass

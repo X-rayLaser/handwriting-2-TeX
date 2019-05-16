@@ -43,8 +43,10 @@ if __name__ == '__main__':
 
     yolo_home = YoloDatasetHome(yolo_dir)
     counter = 0
+    grid_size = yolo_home.config['output_config']['grid_size']
+
     for x_batch, y_batch in yolo_home.flow_with_preload(train_dir, mini_batch_size=1):
-        draw_boxes(x_batch[0], 9, y_batch[0])
+        draw_boxes(x_batch[0], grid_size, y_batch[0])
 
         counter += 1
 

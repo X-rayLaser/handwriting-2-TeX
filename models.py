@@ -1,4 +1,4 @@
-def get_feature_extractor(pretrained_model_path='keras_model.h5'):
+def get_feature_extractor(image_width, image_height, pretrained_model_path='keras_model.h5'):
     from keras import Model, Input
 
     model = initialize_math_recognition_model()
@@ -12,7 +12,7 @@ def get_feature_extractor(pretrained_model_path='keras_model.h5'):
     model.pop()
     model.pop()
 
-    inp = Input(shape=(350, 350, 1))
+    inp = Input(shape=(image_width, image_height, 1))
 
     x = inp
 
@@ -34,21 +34,19 @@ def get_regression_model(input_shape, output_shape):
 
     model = Sequential()
 
-    model.add(Conv2D(filters=96, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
+    model.add(Conv2D(filters=50, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
     model.add(MaxPool2D())
     model.add(BatchNormalization())
     model.add(Flatten())
 
-    model.add(Dense(units=100, activation='relu'))
-    model.add(BatchNormalization())
-    model.add(Dense(units=100, activation='relu'))
+    model.add(Dense(units=500, activation='relu', kernel_initializer='he_normal'))
     model.add(BatchNormalization())
 
     output_units = 1
     for dim in output_shape:
         output_units *= dim
 
-    model.add(Dense(units=output_units, activation='relu'))
+    model.add(Dense(units=output_units, activation='relu', kernel_initializer='he_normal'))
     model.add(Reshape(target_shape=output_shape))
 
     return model

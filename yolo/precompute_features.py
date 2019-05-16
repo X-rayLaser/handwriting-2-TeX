@@ -22,10 +22,14 @@ def precompute_features(feature_extractor, dataset_root, destination):
     import numpy as np
     w = input_config['image_width']
     h = input_config['image_height']
+    counter = 0
     for x, y in yolo_source.get_all_examples():
         inp = np.array(x).reshape((1, w, h, 1)) / 255.0
         feature_maps = feature_extractor.predict(inp)[0]
         yolo_destination.add_example(feature_maps, y)
+
+        counter += 1
+        print('Precomputed {} out of {}'.format(counter, m))
 
 
 if __name__ == '__main__':
@@ -34,5 +38,8 @@ if __name__ == '__main__':
     yolo_source = '../datasets/yolo_dataset'
     destination_dir = '../datasets/yolo_precomputed'
 
-    extractor = get_feature_extractor(pretrained_model_path='../keras_model.h5')
+    yolo = YoloDatasetHome(yolo_source)
+    w = yolo.config['input_config']['image_width']
+    h = yolo.config['input_config']['image_height']
+    extractor = get_feature_extractor(w, h, pretrained_model_path='../keras_model.h5')
     precompute_features(extractor, yolo_source, destination_dir)
