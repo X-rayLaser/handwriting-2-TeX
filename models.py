@@ -27,33 +27,36 @@ def get_feature_extractor(image_width, image_height, pretrained_model_path='kera
 
 
 def get_regression_model(input_shape, output_shape):
-    from keras import Sequential
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Reshape, Conv2D, MaxPool2D
+    from keras import Sequential, Model
+    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Reshape, Conv2D, MaxPool2D, Input, Add, Activation
 
-    drop_prob = 0.5
+    drop_prob = 0.1
 
-    model = Sequential()
+    inp = Input(shape=input_shape)
+    x = inp
 
-    model.add(Conv2D(filters=50, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
-    model.add(MaxPool2D())
-    model.add(BatchNormalization())
-    model.add(Conv2D(filters=100, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
-    model.add(MaxPool2D())
-    model.add(BatchNormalization())
-    model.add(Flatten())
+    x = Conv2D(filters=50, kernel_size=(3, 3), padding='same', activation='relu', kernel_initializer='he_normal')(x)
+    x = MaxPool2D()(x)
+    x = BatchNormalization()(x)
 
-    model.add(Dense(units=500, activation='relu', kernel_initializer='he_normal'))
-    model.add(BatchNormalization())
+    x = Conv2D(filters=100, kernel_size=(3, 3), padding='same', activation='relu', kernel_initializer='he_normal')(x)
+    x = MaxPool2D()(x)
+    x = BatchNormalization()(x)
+
+    x = Flatten()(x)
+
+    x = Dense(units=500, activation='relu', kernel_initializer='he_normal')(x)
+    x = BatchNormalization()(x)
 
     output_units = 1
     for dim in output_shape:
         output_units *= dim
 
-    model.add(Dropout(drop_prob))
-    model.add(Dense(units=output_units, activation='relu', kernel_initializer='he_normal'))
-    model.add(Reshape(target_shape=output_shape))
+    #model.add(Dropout(drop_prob))
+    x = Dense(units=output_units, activation='relu', kernel_initializer='he_normal')(x)
+    out = Reshape(target_shape=output_shape)(x)
 
-    return model
+    return Model(input=inp, output=out)
 
 
 def end_to_end_model(feature_extractor, regression_model):

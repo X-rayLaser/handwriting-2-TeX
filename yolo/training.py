@@ -23,15 +23,20 @@ def train_on_precomputed_activations(regression_model, yolo_root, batch_size=32,
                                                 normalize=False)
 
     from keras.optimizers import Adam
+    from keras import backend
 
-    adam = Adam(lr=0.001)
+    adam = Adam(lr=0.0005)
 
     def custom_loss(y_true, y_pred):
-        print(y_true.shape, y_pred.shape)
-        return 0
+        detections = y_true[:, :, :, 0]
+        score_squares = backend.square(y_pred[:, :, :, 0] - y_true[:, :, :, 0])
+        volume_squares = backend.sum(backend.square(y_pred - y_true), axis=3)
+
+        complete_loss = detections * volume_squares + (1 - detections) * score_squares
+        return backend.sum(complete_loss)
 
     regression_model.compile(optimizer=adam, loss='mean_squared_error',
-                             metrics=['mae'])
+                             metrics=['mse'])
 
     regression_model.fit_generator(generator,
                                    steps_per_epoch=int(m_train / batch_size),
@@ -56,7 +61,7 @@ def train():
     )
 
     train_on_precomputed_activations(regression_model, '../datasets/yolo_precomputed',
-                                     epochs=20)
+                                     epochs=25)
 
     final_model = end_to_end_model(feature_extractor, regression_model)
 
