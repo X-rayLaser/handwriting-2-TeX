@@ -30,11 +30,14 @@ def get_regression_model(input_shape, output_shape):
     from keras import Sequential
     from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Reshape, Conv2D, MaxPool2D
 
-    drop_prob = 0.2
+    drop_prob = 0.5
 
     model = Sequential()
 
     model.add(Conv2D(filters=50, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
+    model.add(MaxPool2D())
+    model.add(BatchNormalization())
+    model.add(Conv2D(filters=100, kernel_size=(3, 3), activation='relu', kernel_initializer='he_normal', input_shape=input_shape))
     model.add(MaxPool2D())
     model.add(BatchNormalization())
     model.add(Flatten())
@@ -46,10 +49,30 @@ def get_regression_model(input_shape, output_shape):
     for dim in output_shape:
         output_units *= dim
 
+    model.add(Dropout(drop_prob))
     model.add(Dense(units=output_units, activation='relu', kernel_initializer='he_normal'))
     model.add(Reshape(target_shape=output_shape))
 
     return model
+
+
+def end_to_end_model(feature_extractor, regression_model):
+    from keras import Model
+    from keras.layers import Input
+
+    inp = Input(shape=feature_extractor.input_shape[1:])
+    x = inp
+    for layer in feature_extractor.layers:
+        x = layer(x)
+
+    for layer in regression_model.layers:
+        x = layer(x)
+
+    out = x
+
+    combined_model = Model(inp, out)
+
+    return combined_model
 
 
 def get_model():

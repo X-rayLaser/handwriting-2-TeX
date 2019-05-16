@@ -1,6 +1,8 @@
 def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
     from PIL.ImageDraw import ImageDraw
+    from PIL import ImageFont
     from data_synthesis import array_to_image
+    from dataset_utils import index_to_class
 
     height, width = a.shape
     cell_height = height / grid_size
@@ -9,13 +11,21 @@ def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
     image = array_to_image(a)
 
     canvas = ImageDraw(image)
+    fnt = ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 15)
 
     for row in range(grid_size):
         for col in range(grid_size):
-            if output_volume[row, col, 0] > p_treshold:
+            detection_score = output_volume[row, col, 0]
+            if detection_score > p_treshold:
                 cell_x = col * cell_width
                 cell_y = row * cell_height
                 box = output_volume[row, col][1:5]
+
+                predictions = output_volume[row, col][5:]
+                import numpy as np
+                index = np.argmax(detection_score * predictions)
+                predicted_text = index_to_class[index]
+
                 xc, yc, w, h = box
 
                 xc_abs = cell_x + xc * cell_width
@@ -29,6 +39,7 @@ def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
 
                 xy = [(x, y), (x + w_abs, y + h_abs)]
                 canvas.rectangle(xy, width=2, outline=128)
+                canvas.text((x+2, y + 2), font=fnt, text=predicted_text, fill=255)
 
     image.show()
 

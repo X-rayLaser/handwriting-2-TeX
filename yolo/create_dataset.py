@@ -66,4 +66,4 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
 if __name__ == '__main__':
     destination_dir = '../datasets/yolo_dataset'
     csv_dir = '../datasets/digits_and_operators_csv/train'
-    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=250)
+    generate_dataset(primitives_source=csv_dir, destination_dir=destination_dir, num_examples=1000)
