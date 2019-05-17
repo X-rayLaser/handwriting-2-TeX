@@ -121,10 +121,10 @@ if __name__ == '__main__':
     mini_batch_size = 32
 
     localization_model = model(num_classes=15)
-    localization_model.compile(optimizer='adam', loss='binary_crossentropy')
+    localization_model.compile(optimizer='adam', loss='categorical_crossentropy')
     localization_model.fit_generator(
         generator=generator(csv_dir, mini_batch_size=mini_batch_size),
         steps_per_epoch=int(m_train / mini_batch_size),
-        epochs=5
+        epochs=2
     )
     localization_model.save_weights('../localization_model.h5')

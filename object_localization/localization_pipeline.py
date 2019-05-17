@@ -27,18 +27,20 @@ def non_max_suppression(boxes, probs):
     pairs.sort(key=lambda t: t[1])
 
     rems = list(pairs)
-    res = []
+    survived_boxes = []
+    survived_scores = []
     while rems:
         box, prob = rems.pop()
-        res.append(box)
+        survived_boxes.append(box)
+        survived_scores.append(prob)
 
         def small_iou(t):
             b, p = t
-            return IoU(box, b) < 0.2
+            return IoU(box, b) < 0.1
 
         rems = list(filter(small_iou, rems))
 
-    return res
+    return survived_boxes, survived_scores
 
 
 def detect_category(y_pred, class_index, width, height, num_classes=15):
@@ -78,30 +80,47 @@ def detect_objects():
 
     m_train, _ = dataset_size(csv_dir)
 
-    localization_model = model(input_shape=(300, 300, 1), num_classes=15)
+    img_width = 600
+    img_height = 500
+    localization_model = model(input_shape=(img_height, img_width, 1), num_classes=15)
     localization_model.load_weights('../localization_model.h5')
 
     csv_dir_test = '../datasets/digits_and_operators_csv/test'
 
-    synthesizer = Synthesizer(csv_dir_test, 300, 300)
+    synthesizer = Synthesizer(csv_dir_test, img_width=img_width, img_height=img_height)
 
     img, latex = synthesizer.synthesize_example()
 
-    y_pred = localization_model.predict(img.reshape(1, 300, 300, 1) / 255.0)
-    y_pred = y_pred.reshape(65, 65, 15)
+    y_pred = localization_model.predict(img.reshape(1, img_height, img_width, 1) / 255.0)
+
+    output_shape = localization_model.output_shape[1:]
+    y_pred = y_pred.reshape(output_shape)
     print(y_pred.shape)
     print(np.argmax(y_pred))
 
     all_boxes = []
     all_labels = []
+    all_scores = []
     from dataset_utils import index_to_class
     for k in range(14):
-        boxes = detect_category(y_pred, k, width=300, height=300)
+        boxes, scores = detect_category(y_pred, k, width=img_width, height=img_height)
         all_boxes.extend(boxes)
+        all_scores.extend(scores)
         all_labels.extend([index_to_class[k]] * len(boxes))
+
+    all_boxes2, all_scores2 = non_max_suppression(all_boxes, all_scores)
+
+    all_labels2 = []
+    for b in all_boxes2:
+        index = all_boxes.index(b)
+        if index == -1:
+            raise Exception('3')
+        all_labels2.append(all_labels[index])
 
     from yolo.draw_bounding_box import visualize_detection
     visualize_detection(img, all_boxes, all_labels)
+
+    visualize_detection(img, all_boxes2, all_labels2)
 
 
 if __name__ == '__main__':
