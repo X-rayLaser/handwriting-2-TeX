@@ -49,5 +49,4 @@ if __name__ == '__main__':
 
     final_model.load_weights(weights_path)
 
-    validate_model(final_model, '../datasets/yolo_dataset', val_folder='train')
-
+    validate_model(final_model, '../datasets/yolo_dataset', val_folder='test')

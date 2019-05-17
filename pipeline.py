@@ -63,7 +63,7 @@ if __name__ == '__main__':
         description='Test machine learning pipeline on'
                     'artificial math expression images'
     )
-    parser.add_argument('--examples', type=float, default=5,
+    parser.add_argument('--examples', type=float, default=25,
                         help='number of examples to test on')
 
     args = parser.parse_args()
@@ -75,13 +75,23 @@ if __name__ == '__main__':
     n = args.examples
 
     correct = 0
+    predicted_latex = ''
+    latex = ''
     for i in range(n):
-        image, latex = synth.synthesize_example()
+        try:
+            image, latex = synth.synthesize_example()
 
-        predicted_latex = image_to_latex(image, model)
-        if latex == predicted_latex:
-            correct += 1
-        else:
+            predicted_latex = image_to_latex(image, model)
+            if latex == predicted_latex:
+                correct += 1
+                #visualize_image(image)
+            else:
+                visualize_image(image)
+                print('Invalid recognition: {} -> {}'.format(latex,
+                                                             predicted_latex))
+        except Exception:
+            import traceback
+            traceback.print_exc()
             visualize_image(image)
             print('Invalid recognition: {} -> {}'.format(latex,
                                                          predicted_latex))

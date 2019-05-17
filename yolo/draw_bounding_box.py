@@ -1,17 +1,35 @@
-def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
-    from PIL.ImageDraw import ImageDraw
-    from PIL import ImageFont
-    from data_synthesis import array_to_image
-    from dataset_utils import index_to_class
+import numpy as np
+from PIL.ImageDraw import ImageDraw
+from PIL import ImageFont
+from data_synthesis import array_to_image
+from dataset_utils import index_to_class
 
+
+def visualize_detection(a, boxes, labels):
+    image = array_to_image(a)
+    canvas = ImageDraw(image)
+    fnt = ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 15)
+
+    for i in range(len(boxes)):
+        xc, yc, w, h = boxes[i]
+        label = labels[i]
+        x = int(round(xc - w / 2))
+        y = int(round(yc - h / 2))
+
+        xy = [(x, y), (x + w, y + h)]
+        canvas.rectangle(xy, width=2, outline=128)
+        canvas.text((x + 2, y + 2), font=fnt, text=label, fill=255)
+
+    image.show()
+
+
+def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
     height, width = a.shape
     cell_height = height / grid_size
     cell_width = width / grid_size
 
-    image = array_to_image(a)
-
-    canvas = ImageDraw(image)
-    fnt = ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 15)
+    boxes = []
+    labels = []
 
     for row in range(grid_size):
         for col in range(grid_size):
@@ -22,7 +40,6 @@ def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
                 box = output_volume[row, col][1:5]
 
                 predictions = output_volume[row, col][5:]
-                import numpy as np
                 index = np.argmax(detection_score * predictions)
                 predicted_text = index_to_class[index]
 
@@ -34,14 +51,10 @@ def draw_boxes(a, grid_size, output_volume, p_treshold=0.1):
                 w_abs = int(round(w * cell_width))
                 h_abs = int(round(h * cell_height))
 
-                x = int(round(xc_abs - w_abs / 2))
-                y = int(round(yc_abs - h_abs / 2))
+                boxes.append((xc_abs, yc_abs, w_abs, h_abs))
+                labels.append(predicted_text)
 
-                xy = [(x, y), (x + w_abs, y + h_abs)]
-                canvas.rectangle(xy, width=2, outline=128)
-                canvas.text((x+2, y + 2), font=fnt, text=predicted_text, fill=255)
-
-    image.show()
+    visualize_detection(a, boxes, labels)
 
 
 if __name__ == '__main__':
