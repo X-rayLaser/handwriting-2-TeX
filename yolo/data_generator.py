@@ -73,4 +73,4 @@ class YoloDataGenerator:
 
         input = canvas.image_data
 
-        return input, volume.to_raw_data()
+        return input, volume

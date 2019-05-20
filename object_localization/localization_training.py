@@ -55,7 +55,7 @@ def generator(csv_files_dir, mini_batch_size=32, num_classes=14):
         for i in range(len(y_train)):
             if random.random() > 0.5:
                 y = y_train[i]
-                x = create_example_image(x_train[i], max_shift=4)
+                x = create_example_image(x_train[i], max_shift=1)
             else:
                 y = num_classes
                 x = create_example_image(x_train[i], max_shift=45)
@@ -125,6 +125,6 @@ if __name__ == '__main__':
     localization_model.fit_generator(
         generator=generator(csv_dir, mini_batch_size=mini_batch_size),
         steps_per_epoch=int(m_train / mini_batch_size),
-        epochs=2
+        epochs=5
     )
     localization_model.save_weights('../localization_model.h5')

@@ -1,3 +1,11 @@
+def get_localization_model(img_width, img_height, num_classes=15, path='localization_model.h5'):
+    from object_localization import localization_training
+
+    localization_model = localization_training.model(input_shape=(img_height, img_width, 1), num_classes=num_classes)
+    localization_model.load_weights(path)
+    return localization_model
+
+
 def get_feature_extractor(image_width, image_height, pretrained_model_path='keras_model.h5'):
     from keras import Model, Input
 

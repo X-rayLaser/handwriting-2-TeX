@@ -53,7 +53,6 @@ def detect_category(y_pred, class_index, width, height, num_classes=15):
     boxes = []
     scores = []
 
-    print(y_pred.shape)
     rows, cols = y_pred.shape
 
     for row in range(rows):
@@ -62,41 +61,19 @@ def detect_category(y_pred, class_index, width, height, num_classes=15):
                 x = int(round(col / cols * width))
                 y = int(round(row / rows * height))
 
-                xc = x + 45 // 2
-                yc = y + 45 // 2
-
                 boxes.append((x, y, 45, 45))
                 scores.append(y_pred[row, col])
 
     return non_max_suppression(boxes, scores)
 
 
-def detect_objects():
-    from data_synthesis import ImagesGenerator, visualize_image, Synthesizer
-    from object_localization.localization_training import model
-    from dataset_utils import dataset_size
-    import numpy as np
-    csv_dir = '../datasets/digits_and_operators_csv/train'
+def detect_objects(image, localization_model):
+    img_height, img_width = image.shape
 
-    m_train, _ = dataset_size(csv_dir)
-
-    img_width = 600
-    img_height = 500
-    localization_model = model(input_shape=(img_height, img_width, 1), num_classes=15)
-    localization_model.load_weights('../localization_model.h5')
-
-    csv_dir_test = '../datasets/digits_and_operators_csv/test'
-
-    synthesizer = Synthesizer(csv_dir_test, img_width=img_width, img_height=img_height)
-
-    img, latex = synthesizer.synthesize_example()
-
-    y_pred = localization_model.predict(img.reshape(1, img_height, img_width, 1) / 255.0)
+    y_pred = localization_model.predict(image.reshape(1, img_height, img_width, 1) / 255.0)
 
     output_shape = localization_model.output_shape[1:]
     y_pred = y_pred.reshape(output_shape)
-    print(y_pred.shape)
-    print(np.argmax(y_pred))
 
     all_boxes = []
     all_labels = []
@@ -117,11 +94,25 @@ def detect_objects():
             raise Exception('3')
         all_labels2.append(all_labels[index])
 
-    from yolo.draw_bounding_box import visualize_detection
-    visualize_detection(img, all_boxes, all_labels)
-
-    visualize_detection(img, all_boxes2, all_labels2)
+    return all_boxes2, all_labels2
 
 
 if __name__ == '__main__':
-    detect_objects()
+    from data_synthesis import Synthesizer
+    from object_localization.localization_training import model
+
+    img_width = 600
+    img_height = 400
+
+    csv_dir_test = '../datasets/digits_and_operators_csv/test'
+
+    synthesizer = Synthesizer(csv_dir_test, img_width=img_width, img_height=img_height)
+
+    localization_model = model(input_shape=(img_height, img_width, 1), num_classes=15)
+    localization_model.load_weights('../localization_model.h5')
+
+    image, latex = synthesizer.synthesize_example()
+    bounding_boxes, labels = detect_objects(image, localization_model)
+    from yolo.draw_bounding_box import visualize_detection
+
+    visualize_detection(image, bounding_boxes, labels)

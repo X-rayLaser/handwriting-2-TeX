@@ -12,6 +12,14 @@ class YoloVolume:
         self._boxes = []
         self._classes = []
 
+    @property
+    def boxes(self):
+        return self._boxes
+
+    @property
+    def classes(self):
+        return self._classes
+
     def _prepare_output(self):
         confidence_score = 1
         bounding_box_size = 4

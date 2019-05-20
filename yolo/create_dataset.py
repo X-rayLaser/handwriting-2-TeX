@@ -58,7 +58,8 @@ def generate_dataset(primitives_source, destination_dir, num_examples):
 
     for i in range(num_examples):
         n = 6
-        input, output = gen.make_example(elements=n)
+        input, volume = gen.make_example(elements=n)
+        output = volume.to_raw_data()
         yolo_home.add_example(input, output)
         print('Created examples {} out of {}'.format(i, num_examples))
 

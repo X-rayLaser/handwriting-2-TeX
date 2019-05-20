@@ -11,9 +11,12 @@ import pipeline
 class Recognizer(QtCore.QThread):
     completed = QtCore.pyqtSignal(str)
 
-    def __init__(self, jobs_queue):
+    def __init__(self, jobs_queue, img_width=300, img_height=300):
         super().__init__()
         self.jobs_queue = jobs_queue
+
+        self.img_width = img_width
+        self.img_height = img_height
 
     def get_job(self):
         job = self.jobs_queue.get()
@@ -23,9 +26,11 @@ class Recognizer(QtCore.QThread):
         return job
 
     def run(self):
-        from models import get_model
+        #from models import get_model
+        #model = get_model()
+        from models import get_localization_model
 
-        model = get_model()
+        model = get_localization_model(self.img_width, self.img_height)
 
         while True:
             image = self.get_job()
@@ -42,7 +47,7 @@ class AppManager(QtCore.QObject):
         super().__init__()
         self.clipboard = clipboard
         self.jobs = Queue()
-        self.thread = Recognizer(self.jobs)
+        self.thread = Recognizer(self.jobs, img_width=400, img_height=300)
 
         self.thread.completed.connect(
             lambda res: self.predictionReady.emit(res)

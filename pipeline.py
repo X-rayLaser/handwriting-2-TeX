@@ -13,11 +13,38 @@ def classifiy(image, model):
     return feed_x(image, model)
 
 
+def detect_objects(image, model):
+    from object_localization import localization_pipeline as locpipe
+
+    boxes, labels = locpipe.detect_objects(image, model)
+
+    assert len(boxes) == len(labels)
+
+    res = []
+    for i in range(len(boxes)):
+        x, y, w, h = boxes[i]
+        label = labels[i]
+        from building_blocks import RectangularRegion
+
+        region = RectangularRegion(x, y, w, h)
+
+        if region.width > 70:
+            res.append(Primitive('div', region))
+        elif region.width > 45 and region.height < image_size / 8:
+            res.append(Primitive('div', region))
+        else:
+            category_class = label
+            res.append(Primitive(category_class, region))
+
+    return res
+
+
 def image_to_latex(image, model):
     from construction import construct_latex
-    segments = extract_segments(image)
+    #segments = extract_segments(image)
+    #primitives = recognize(segments, model)
 
-    primitives = recognize(segments, model)
+    primitives = detect_objects(image, model)
 
     return construct_latex(primitives, image.shape[1], image.shape[0])
 
