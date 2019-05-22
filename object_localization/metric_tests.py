@@ -1,5 +1,9 @@
-from object_localization.localization_pipeline import IoU
 import numpy as np
+from object_localization.localization_pipeline import IoU
+from yolo.data_generator import YoloDataGenerator
+from models import get_localization_model
+from object_localization.localization_pipeline import detect_objects
+from yolo.draw_bounding_box import visualize_detection
 
 
 def localization_score(box, predicted_box):
@@ -46,17 +50,11 @@ def metric_score(correct_answers, predictions):
             predictions.remove(best_prediction)
 
     iou_score = np.mean(ious)
-    print(ious)
-    print(iou_score)
     accuracy_score = 1.0 - misclassified / len(correct_answers)
     return iou_score * accuracy_score
 
 
 def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_image=10):
-    from yolo.data_generator import YoloDataGenerator
-    from models import get_localization_model
-    from object_localization.localization_pipeline import detect_objects
-    from yolo.draw_bounding_box import visualize_detection
     primitives_source = '../datasets/digits_and_operators_csv/train'
 
     gen = YoloDataGenerator(img_width=image_width, img_height=image_height,
@@ -83,7 +81,7 @@ def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_im
         scores.append(score)
         left_overs += abs(len(predictions) - len(correct_answers))
 
-        #visualize_detection(image, box_predictions, class_predictions)
+        visualize_detection(image, box_predictions, class_predictions)
 
     mean_score = np.mean(scores)
     print('Optmizing metric: {}'.format(mean_score))
@@ -91,4 +89,4 @@ def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_im
 
 
 if __name__ == '__main__':
-    evaluate(num_examples=20)
+    evaluate(num_examples=5)

@@ -36,6 +36,11 @@ def detect_objects(image, model):
             category_class = label
             res.append(Primitive(category_class, region))
 
+    div_lines = get_division_lines(image)
+
+    for div_line in div_lines:
+        res = [primitive for primitive in res if primitive not in div_line.region]
+
     return res
 
 
@@ -72,6 +77,21 @@ def recognize(segments, model):
         else:
             category_class = feed_x(segment.pixels, model)
             res.append(Primitive(category_class, segment.bounding_box))
+
+    return res
+
+
+def get_division_lines(image):
+    segments = extract_segments(image)
+    res = []
+
+    for segment in segments:
+        region = segment.bounding_box
+
+        if segment.bounding_box.width > 70:
+            res.append(Primitive('div', region))
+        elif segment.bounding_box.width > 45 and segment.bounding_box.height < image_size / 8:
+            res.append(Primitive('div', region))
 
     return res
 
