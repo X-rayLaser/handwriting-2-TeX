@@ -171,6 +171,14 @@ class RectangularRegion:
         xend = self.x + self.width
         return self.subregion(x, self.y, xend, self.y + self.height)
 
+    def IoU(self, region):
+        intersection = self.rectbox.intersection(region.rectbox).area
+        union = self.rectbox.union(region.rectbox).area
+
+        if union == 0:
+            return 0
+        return intersection / union
+
     def __contains__(self, segment):
         from shapely.geometry import box
 

@@ -12,11 +12,8 @@ min_size = image_size * 3
 
 
 def augmented_generator():
-    return ImageDataGenerator()
-    return ImageDataGenerator(rotation_range=20,
+    return ImageDataGenerator(rotation_range=15,
                               zoom_range=[0.95, 1.4],
-                              height_shift_range=0.02,
-                              width_shift_range=0.02,
                               fill_mode='constant',
                               cval=0)
 

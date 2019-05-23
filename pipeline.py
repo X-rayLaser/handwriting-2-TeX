@@ -28,20 +28,16 @@ def detect_objects(image, model):
 
         region = RectangularRegion(x, y, w, h)
 
-        if region.width > 70:
-            res.append(Primitive('div', region))
-        elif region.width > 45 and region.height < image_size / 8:
-            res.append(Primitive('div', region))
-        else:
-            category_class = label
-            res.append(Primitive(category_class, region))
+        category_class = label
+        res.append(Primitive(category_class, region))
 
     div_lines = get_division_lines(image)
 
     for div_line in div_lines:
-        res = [primitive for primitive in res if primitive not in div_line.region]
+        print('div line')
+        res = [primitive for primitive in res if div_line.region.IoU(primitive.region) <= 0]
 
-    return res
+    return res + div_lines
 
 
 def image_to_latex(image, model):
