@@ -56,14 +56,23 @@ def metric_score(correct_answers, predictions):
 
 def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_image=10):
     primitives_source = '../datasets/digits_and_operators_csv/train'
+    from object_localization.localization_training import model
+    #from models import initialize_math_recognition_model
+    from object_localization.detection_training import detection_model
+    from object_localization.localization_pipeline import detect_locations
 
     gen = YoloDataGenerator(img_width=image_width, img_height=image_height,
                             primitives_dir=primitives_source,
                             grid_size=9, num_classes=14)
 
-    loc_model = get_localization_model(img_width=image_width,
-                                       img_height=image_height,
-                                       path='../localization_model.h5')
+    loc_model = model(input_shape=(45, 45, 1), num_classes=14)
+    loc_model.load_weights('../localization_model.h5')
+    #loc_model = initialize_math_recognition_model()
+    #loc_model.load_weights('../keras_model.h5')
+
+    dmodel_builder = detection_model(input_shape=(45, 45, 1))
+    dmodel_builder.load_weights('../detection_model.h5')
+    dmodel = dmodel_builder.get_complete_model(input_shape=(image_height, image_width, 1))
 
     scores = []
     left_overs = 0
@@ -75,7 +84,9 @@ def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_im
 
         correct_answers = list(zip(bounding_boxes, labels))
 
-        box_predictions, class_predictions = detect_objects(image, loc_model)
+        #box_predictions, class_predictions = detect_objects(image, loc_model)
+        box_predictions, class_predictions = detect_locations(image, dmodel, loc_model)
+
         predictions = list(zip(box_predictions, class_predictions))
         score = metric_score(correct_answers, predictions)
         scores.append(score)
@@ -89,4 +100,4 @@ def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_im
 
 
 if __name__ == '__main__':
-    evaluate(num_examples=5)
+    evaluate(num_examples=15)

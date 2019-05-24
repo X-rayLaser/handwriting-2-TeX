@@ -64,6 +64,13 @@ class ModelBuilder:
                         )
         return self
 
+    def add_binary_classification_layer(self):
+        self._model.add(Conv2D(filters=1, kernel_size=(1, 1),
+                               kernel_initializer='he_normal',
+                               activation='sigmoid')
+                        )
+        return self
+
     def load_weights(self, path):
         self._model.load_weights(path)
 
