@@ -29,12 +29,19 @@ class Recognizer(QtCore.QThread):
         #from models import get_model
         #model = get_model()
         from models import get_localization_model
+        from object_localization.detection_training import detection_model
+        from object_localization.localization_training import model
 
-        model = get_localization_model(self.img_width, self.img_height)
+        localization_model = model(input_shape=(45, 45, 1), num_classes=14)
+        localization_model.load_weights('localization_model.h5')
+
+        dmodel_builder = detection_model(input_shape=(45, 45, 1))
+        dmodel_builder.load_weights('detection_model.h5')
+        det_model = dmodel_builder.get_complete_model(input_shape=(300, 400, 1))
 
         while True:
             image = self.get_job()
-            latex_str = pipeline.image_to_latex(image, model)
+            latex_str = pipeline.image_to_latex(image, det_model, localization_model)
 
             if latex_str:
                 self.completed.emit(latex_str)

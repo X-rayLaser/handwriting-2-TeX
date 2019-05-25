@@ -65,42 +65,6 @@ def detect_boxes(prediction_grid, width, height, p_threshold=0.9):
     return boxes, scores
 
 
-def detect_category(y_pred, class_index, width, height, num_classes=15):
-    y_pred = y_pred[:, :, class_index]
-    boxes, scores = detect_boxes(y_pred, width, height, p_threshold=0.6)
-    return non_max_suppression(boxes, scores)
-
-
-def detect_objects(image, localization_model):
-    img_height, img_width = image.shape
-
-    y_pred = localization_model.predict(image.reshape(1, img_height, img_width, 1) / 255.0)
-
-    output_shape = localization_model.output_shape[1:]
-    y_pred = y_pred.reshape(output_shape)
-
-    all_boxes = []
-    all_labels = []
-    all_scores = []
-    from dataset_utils import index_to_class
-    for k in range(14):
-        boxes, scores = detect_category(y_pred, k, width=img_width, height=img_height)
-        all_boxes.extend(boxes)
-        all_scores.extend(scores)
-        all_labels.extend([index_to_class[k]] * len(boxes))
-
-    all_boxes2, all_scores2 = non_max_suppression(all_boxes, all_scores)
-
-    all_labels2 = []
-    for b in all_boxes2:
-        index = all_boxes.index(b)
-        if index == -1:
-            raise Exception('3')
-        all_labels2.append(all_labels[index])
-
-    return all_boxes2, all_labels2
-
-
 def cropped_areas(image, box):
     height, width = image.shape
     pixel_shift = 1

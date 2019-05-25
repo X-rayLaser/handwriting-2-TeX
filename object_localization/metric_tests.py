@@ -2,7 +2,6 @@ import numpy as np
 from object_localization.localization_pipeline import IoU
 from yolo.data_generator import YoloDataGenerator
 from models import get_localization_model
-from object_localization.localization_pipeline import detect_objects
 from yolo.draw_bounding_box import visualize_detection
 
 

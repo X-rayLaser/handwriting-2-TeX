@@ -16,8 +16,8 @@ class ModelBuilder:
         self._input_width = w
         self._input_height = h
 
-    def add_conv_layer(self, last_one=False):
-        kwargs = dict(filters=self._filters, kernel_size=(3, 3),
+    def add_conv_layer(self, last_one=False, kernel_size=(3, 3)):
+        kwargs = dict(filters=self._filters, kernel_size=kernel_size,
                       kernel_initializer='he_normal', activation='relu')
         if last_one:
             kwargs['name'] ='last_feature_extraction_layer'
@@ -26,8 +26,8 @@ class ModelBuilder:
 
         self._model.add(layer)
         self._filters *= 2
-        self._input_width -= 2
-        self._input_height -= 2
+        self._input_height -= (kernel_size[0] - 1)
+        self._input_width -= (kernel_size[1] - 1)
 
         return self
 

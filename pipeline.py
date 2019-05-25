@@ -13,10 +13,11 @@ def classifiy(image, model):
     return feed_x(image, model)
 
 
-def detect_objects(image, model):
-    from object_localization import localization_pipeline as locpipe
+def detect_objects(image, detection_model, classification_model):
+    from object_localization.localization_pipeline import detect_locations
 
-    boxes, labels = locpipe.detect_objects(image, model)
+    boxes, labels = detect_locations(image, detection_model,
+                                     classification_model)
 
     assert len(boxes) == len(labels)
 
@@ -40,12 +41,12 @@ def detect_objects(image, model):
     return res + div_lines
 
 
-def image_to_latex(image, model):
+def image_to_latex(image, detection_model, classification_model):
     from construction import construct_latex
     #segments = extract_segments(image)
     #primitives = recognize(segments, model)
 
-    primitives = detect_objects(image, model)
+    primitives = detect_objects(image, detection_model, classification_model)
 
     return construct_latex(primitives, image.shape[1], image.shape[0])
 
@@ -101,6 +102,10 @@ if __name__ == '__main__':
     import argparse
     from models import get_math_symbols_model
     from data_synthesis import Synthesizer
+    from object_localization.detection_training import detection_model
+
+    img_width = 400
+    img_height = 300
 
     parser = argparse.ArgumentParser(
         description='Test machine learning pipeline on'
@@ -111,9 +116,17 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    synth = Synthesizer('datasets/digits_and_operators_csv/test')
+    synth = Synthesizer('datasets/digits_and_operators_csv/test', img_width=img_width, img_height=img_height)
 
-    model = get_math_symbols_model()
+    #model = get_math_symbols_model()
+    from object_localization.localization_training import model as classification_model
+
+    model = classification_model(input_shape=(45, 45, 1), num_classes=14)
+    model.load_weights('localization_model.h5')
+
+    dmodel_builder = detection_model(input_shape=(45, 45, 1))
+    dmodel_builder.load_weights('detection_model.h5')
+    det_model = dmodel_builder.get_complete_model(input_shape=(img_height, img_width, 1))
 
     n = args.examples
 
@@ -124,7 +137,7 @@ if __name__ == '__main__':
         try:
             image, latex = synth.synthesize_example()
 
-            predicted_latex = image_to_latex(image, model)
+            predicted_latex = image_to_latex(image, det_model, model)
             if latex == predicted_latex:
                 correct += 1
                 #visualize_image(image)
@@ -135,7 +148,7 @@ if __name__ == '__main__':
         except Exception:
             import traceback
             traceback.print_exc()
-            visualize_image(image)
+            #visualize_image(image)
             print('Invalid recognition: {} -> {}'.format(latex,
                                                          predicted_latex))
 

@@ -11,7 +11,7 @@ image_size = 45
 min_size = image_size * 3
 
 
-def augmented_generator(rotation_range=5, zoom_range=None):
+def augmented_generator(rotation_range=10, zoom_range=None):
     if zoom_range is None:
         zoom_range = [0.95, 1.4]
     return ImageDataGenerator(rotation_range=rotation_range,
