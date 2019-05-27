@@ -415,9 +415,9 @@ def generate_data(n, csv_dir):
     from dataset_utils import index_to_class
 
     dx = 30
-    dy = 45
+    dy = 40
 
-    n = 10
+    n = 5
 
     canvas = Canvas(dx * (n+1), dy * (n+1), csv_dir)
 
@@ -448,12 +448,15 @@ def generate_data(n, csv_dir):
         x = random.randint(0, n * dx)
         y = random.randint(0, n * dy)
         img = canvas.crop_area(x, y)
+        visualize_image(img)
 
     return canvas.image_data
 
 
 if __name__ == '__main__':
     csv_dir = 'datasets/digits_and_operators_csv/dev'
+    generate_data(10, csv_dir)
+    raise Exception('')
     synthesizer = Synthesizer('datasets/digits_and_operators_csv/dev')
     img, latex = synthesizer.synthesize_example()
     print(latex)

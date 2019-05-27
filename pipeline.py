@@ -100,29 +100,28 @@ def prepare_input(x):
 
 if __name__ == '__main__':
     import argparse
-    from models import get_math_symbols_model
     from data_synthesis import Synthesizer
     from object_localization.detection_training import detection_model
 
-    img_width = 400
-    img_height = 300
+    img_width = 600
+    img_height = 400
 
     parser = argparse.ArgumentParser(
         description='Test machine learning pipeline on'
                     'artificial math expression images'
     )
-    parser.add_argument('--examples', type=float, default=25,
+    parser.add_argument('--examples', type=float, default=15,
                         help='number of examples to test on')
 
     args = parser.parse_args()
 
     synth = Synthesizer('datasets/digits_and_operators_csv/test', img_width=img_width, img_height=img_height)
 
-    #model = get_math_symbols_model()
-    from object_localization.localization_training import model as classification_model
+    from object_localization.localization_training import build_classification_model
 
-    model = classification_model(input_shape=(45, 45, 1), num_classes=14)
-    model.load_weights('localization_model.h5')
+    builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
+    builder.load_weights('localization_model.h5')
+    model = builder.get_complete_model(input_shape=(45, 45, 1))
 
     dmodel_builder = detection_model(input_shape=(45, 45, 1))
     dmodel_builder.load_weights('detection_model.h5')
@@ -140,9 +139,9 @@ if __name__ == '__main__':
             predicted_latex = image_to_latex(image, det_model, model)
             if latex == predicted_latex:
                 correct += 1
-                #visualize_image(image)
-            else:
                 visualize_image(image)
+            else:
+                #visualize_image(image)
                 print('Invalid recognition: {} -> {}'.format(latex,
                                                              predicted_latex))
         except Exception:

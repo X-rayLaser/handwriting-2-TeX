@@ -107,4 +107,4 @@ if __name__ == '__main__':
                 validation_gen=validation_generator.generate(),
                 m_train=m_train, m_val=m_val, mini_batch_size=mini_batch_size,
                 save_path='../localization_model.h5',
-                epochs=10)
+                epochs=8)

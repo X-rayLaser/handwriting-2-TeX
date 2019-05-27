@@ -86,10 +86,6 @@ class DistortedImagesGenerator(MiniBatchGenerator):
         return load_dataset(csv_files_dir=self.csv_files_dir)
 
     def distort_example(self, x, y):
-        cat_class = index_to_class[y]
-        if cat_class in ['+', 'times']:
-            return x
-
         x = x.reshape((1, self.output_height, self.output_width, 1))
         for x_batch, y_batch in self.distortions_generator.flow(x, [y], batch_size=1):
             return np.array(x_batch[0], dtype=np.uint8)

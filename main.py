@@ -26,14 +26,12 @@ class Recognizer(QtCore.QThread):
         return job
 
     def run(self):
-        #from models import get_model
-        #model = get_model()
-        from models import get_localization_model
         from object_localization.detection_training import detection_model
-        from object_localization.localization_training import model
+        from object_localization.localization_training import model, build_classification_model
 
-        localization_model = model(input_shape=(45, 45, 1), num_classes=14)
-        localization_model.load_weights('localization_model.h5')
+        builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
+        builder.load_weights('localization_model.h5')
+        localization_model = builder.get_complete_model(input_shape=(45, 45, 1))
 
         dmodel_builder = detection_model(input_shape=(45, 45, 1))
         dmodel_builder.load_weights('detection_model.h5')

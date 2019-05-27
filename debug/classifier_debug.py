@@ -57,13 +57,14 @@ def evaluate_classifier(classifier, height=45, width=45):
 
 if __name__ == '__main__':
     from object_localization.detection_training import detection_model
-    from object_localization.localization_training import model as classification_model
+    from object_localization.localization_training import build_classification_model
 
-    #model = classification_model(input_shape=(45, 45, 1), num_classes=14)
-    #model.load_weights('../localization_model.h5')
-    from models import initialize_math_recognition_model
-    loc_model = initialize_math_recognition_model()
-    loc_model.load_weights('../keras_model.h5')
+    builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
+    builder.load_weights('../localization_model.h5')
+    loc_model = builder.get_complete_model(input_shape=(45, 45, 1))
+    #from models import initialize_math_recognition_model
+    #loc_model = initialize_math_recognition_model()
+    #loc_model.load_weights('../keras_model.h5')
 
     print('Testing classifier model on well cropped images of size 45x45:')
     mistakes, error_rate = evaluate_classifier(loc_model)
