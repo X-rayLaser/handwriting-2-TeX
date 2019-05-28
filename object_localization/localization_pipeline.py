@@ -22,25 +22,28 @@ def IoU(box1, box2):
     return intersection / union
 
 
-def non_max_suppression(boxes, probs, p_threshold=0.1):
+def non_max_suppression(boxes, probs, iou_threshold=0.1):
     pairs = list(zip(boxes, probs))
     pairs.sort(key=lambda t: t[1])
 
     rems = list(pairs)
     survived_boxes = []
     survived_scores = []
+    survived_indices = []
     while rems:
         box, prob = rems.pop()
+        index = probs.index(prob)
         survived_boxes.append(box)
         survived_scores.append(prob)
+        survived_indices.append(index)
 
         def small_iou(t):
             b, p = t
-            return IoU(box, b) < p_threshold
+            return IoU(box, b) < iou_threshold
 
         rems = list(filter(small_iou, rems))
 
-    return survived_boxes, survived_scores
+    return survived_boxes, survived_scores, survived_indices
 
 
 def detect_boxes(prediction_grid, width, height, p_threshold=0.9):
@@ -92,21 +95,32 @@ def recognize_object(image, bounding_box, classifier):
     import numpy as np
 
     outputs = []
-    counts = [0] * 14
     for image_patch in cropped_areas(image, bounding_box):
         a = image_patch.reshape((1, 45, 45, 1)) / 255.0
         y_hat = classifier.predict(a)[0]
 
         y_hat = np.squeeze(y_hat)
-        cat_class = y_hat[:14].argmax()
 
-        counts[cat_class] += 1
         outputs.append(y_hat[:14])
 
     import numpy as np
     v = np.mean(outputs, axis=0)
+    score = np.max(v)
+    res1 = index_to_class[np.argmax(v)]
 
-    return index_to_class[np.argmax(counts)]
+    return res1, score
+
+
+def group_indices(labels):
+    groups = {}
+    for i in range(len(labels)):
+        label = labels[i]
+        if label not in groups:
+            groups[label] = []
+
+        groups[label].append(i)
+
+    return groups
 
 
 def detect_locations(image, dmodel, classifier_model):
@@ -117,13 +131,38 @@ def detect_locations(image, dmodel, classifier_model):
     output_shape = dmodel.output_shape[1:]
     y_pred = y_pred.reshape(output_shape)[:, :, 0]
     boxes, scores = detect_boxes(y_pred, img_width, img_height)
-    boxes, scores = non_max_suppression(boxes, scores)
+    boxes, scores, _ = non_max_suppression(boxes, scores, iou_threshold=0.6)
 
     labels = []
+    scores = []
     for box in boxes:
-        predicted_class = recognize_object(image, box, classifier_model)
+        predicted_class, score = recognize_object(image, box, classifier_model)
         labels.append(predicted_class)
-    return boxes, labels
+        scores.append(score)
+
+    groups = group_indices(labels)
+    cleaned_groups = dict(groups)
+    for label, indices in groups.items():
+        label_boxes = [boxes[i] for i in indices]
+        label_scores = [scores[i] for i in indices]
+        _, _, remaining_indices = non_max_suppression(label_boxes, label_scores, iou_threshold=0.01)
+        cleaned_groups[label] = [indices[i] for i in remaining_indices]
+
+    all_boxes = []
+    all_labels = []
+    all_scores = []
+    for label, indices in cleaned_groups.items():
+        all_boxes.extend([boxes[i] for i in indices])
+        all_labels.extend([label] * len(indices))
+        all_scores.extend([scores[i] for i in indices])
+
+    assert len(all_boxes) == len(all_labels)
+    _, _, indices = non_max_suppression(all_boxes, all_scores, iou_threshold=0.05)
+
+    print(indices)
+    cleaned_boxes = [all_boxes[i] for i in indices]
+    cleaned_labels = [all_labels[i] for i in indices]
+    return cleaned_boxes, cleaned_labels
 
 
 if __name__ == '__main__':

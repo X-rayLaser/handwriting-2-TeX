@@ -55,8 +55,7 @@ def metric_score(correct_answers, predictions):
 
 def evaluate(image_width=300, image_height=300, num_examples=100, objects_per_image=10):
     primitives_source = '../datasets/digits_and_operators_csv/train'
-    from object_localization.localization_training import model, build_classification_model
-    #from models import initialize_math_recognition_model
+    from object_localization.localization_training import build_classification_model
     from object_localization.detection_training import detection_model
     from object_localization.localization_pipeline import detect_locations
 
