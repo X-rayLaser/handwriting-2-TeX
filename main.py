@@ -29,7 +29,8 @@ class Recognizer(QtCore.QThread):
         from models import build_classification_model
 
         builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
-        builder.load_weights('classification_model.h5')
+        #builder.load_weights('classification_model.h5')
+        builder.load_weights('new_model.h5')
         localization_model = builder.get_complete_model(input_shape=(45, 45, 1))
 
         while True:

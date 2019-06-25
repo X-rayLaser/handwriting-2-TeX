@@ -1,6 +1,9 @@
 from keras.layers import Input, InputLayer, Dropout, BatchNormalization, Conv2D, MaxPool2D
 from keras.models import Sequential
 from keras import Model
+import argparse
+from keras.datasets import mnist
+import os
 
 
 class ModelBuilder:
@@ -129,7 +132,7 @@ def build_classification_model(input_shape, num_classes):
 
 def train_model(model, train_gen, validation_gen, m_train, m_val, mini_batch_size=32,
                 loss='categorical_crossentropy', metrics=None,
-                save_path='../trained_model.h5', epochs=6):
+                save_path='trained_model.h5', epochs=6):
     if metrics is None:
         metrics = ['accuracy']
 
@@ -146,16 +149,76 @@ def train_model(model, train_gen, validation_gen, m_train, m_val, mini_batch_siz
     model_to_train.save_weights(save_path)
 
 
-if __name__ == '__main__':
-    import argparse
+def combined_generator(mnist_data, dir_path, mini_batch_size=128):
+    from dataset_utils import load_dataset, dataset_generator
+    from skimage.transform import resize
+    from skimage import img_as_ubyte
+    x, y = load_dataset(dir_path)
 
+    x_mnist, y_mnist = mnist_data
+
+    size = (45, 45)
+
+    import numpy as np
+    x_mnist_scaled = np.zeros((len(x_mnist), 45 * 45), dtype=np.uint8)
+    for i in range(len(x_mnist)):
+        resized = resize(x_mnist[i], size, anti_aliasing=True)
+        resized = img_as_ubyte(resized)
+
+        x_mnist_scaled[i] = resized.reshape(45 * 45)
+
+    x = np.vstack((x, x_mnist_scaled))
+    y = np.hstack((y, y_mnist))
+
+    m = len(y)
+
+    gen = dataset_generator(x, y, mini_batch_size=mini_batch_size)
+
+    def wrapped_gen():
+        for x_batch, y_batch in gen:
+            yield x_batch, y_batch.reshape((-1, 1, 1, 14))
+
+    return wrapped_gen(), m
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Given an image, compress it using JPEG algorithm'
+        description=''
     )
 
-    parser.add_argument('--epochs', type=int, default=8,
+    parser.add_argument('--epochs', type=int, default=9,
                         help='number of iterations')
 
     args = parser.parse_args()
 
-    #train_math_recognition_model(epochs=args.epochs)
+    (x_train_dev, y_train_dev), mnist_test = mnist.load_data()
+
+    m_train = 55000
+    mini_batch_size = 64
+
+    x_train = x_train_dev[:m_train]
+    y_train = y_train_dev[:m_train]
+
+    x_dev = x_train_dev[m_train:]
+    y_dev = y_train_dev[m_train:]
+
+    train_path = os.path.join('datasets', 'digits_and_operators_csv', 'train')
+    dev_path = os.path.join('datasets', 'digits_and_operators_csv', 'dev')
+
+    train_gen, m_train = combined_generator((x_train, y_train), train_path,
+                                            mini_batch_size)
+    val_gen, m_dev = combined_generator((x_dev, y_dev), dev_path,
+                                        mini_batch_size)
+
+    builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
+    weights_path = os.path.join('new_model.h5')
+
+    if os.path.isfile(weights_path):
+        builder.load_weights(weights_path)
+
+    classification_model = builder.get_complete_model(input_shape=(45, 45, 1))
+
+    train_model(model=classification_model, train_gen=train_gen,
+                validation_gen=val_gen, m_train=m_train, m_val=m_dev,
+                mini_batch_size=mini_batch_size,
+                save_path=weights_path, epochs=args.epochs)
