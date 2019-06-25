@@ -41,12 +41,10 @@ def detect_objects(image, detection_model, classification_model):
     return res + div_lines
 
 
-def image_to_latex(image, detection_model, classification_model):
+def image_to_latex(image, classification_model):
     from construction import construct_latex
-    #segments = extract_segments(image)
-    #primitives = recognize(segments, model)
-
-    primitives = detect_objects(image, detection_model, classification_model)
+    segments = extract_segments(image)
+    primitives = recognize(segments, classification_model)
 
     return construct_latex(primitives, image.shape[1], image.shape[0])
 
@@ -72,7 +70,11 @@ def recognize(segments, model):
         elif segment.bounding_box.width > 45 and segment.bounding_box.height < image_size / 8:
             res.append(Primitive('div', region))
         else:
-            category_class = feed_x(segment.pixels, model)
+            x = segment.pixels
+            x_input = prepare_input(x)
+            a = model.predict(x_input)
+            category_class = index_to_class[np.argmax(a)]
+            #category_class = feed_x(segment.pixels, model)
             res.append(Primitive(category_class, segment.bounding_box))
 
     return res

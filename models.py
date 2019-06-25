@@ -1,191 +1,149 @@
-def get_localization_model(img_width, img_height, num_classes=15, path='localization_model.h5'):
-    from object_localization import localization_training
-
-    localization_model = localization_training.model(input_shape=(img_height, img_width, 1), num_classes=num_classes)
-    localization_model.load_weights(path)
-    return localization_model
+from keras.layers import Input, InputLayer, Dropout, BatchNormalization, Conv2D, MaxPool2D
+from keras.models import Sequential
+from keras import Model
 
 
-def get_feature_extractor(image_width, image_height, pretrained_model_path='keras_model.h5'):
-    from keras import Model, Input
+class ModelBuilder:
+    def __init__(self, input_shape, initial_num_filters=6):
+        self._filters = initial_num_filters
+        self._model = Sequential()
+        self._model.add(InputLayer(input_shape=input_shape))
+        h, w, d = input_shape
+        self._input_width = w
+        self._input_height = h
 
-    model = initialize_math_recognition_model()
-    model.load_weights(pretrained_model_path)
-    model.pop()
-    model.pop()
-    model.pop()
-    model.pop()
-    model.pop()
-    model.pop()
-    model.pop()
-    model.pop()
+    def add_conv_layer(self, last_one=False, kernel_size=(3, 3)):
+        kwargs = dict(filters=self._filters, kernel_size=kernel_size,
+                      kernel_initializer='he_normal', activation='relu')
+        if last_one:
+            kwargs['name'] = 'last_feature_extraction_layer'
 
-    inp = Input(shape=(image_width, image_height, 1))
+        layer = Conv2D(**kwargs)
 
-    x = inp
+        self._model.add(layer)
+        self._filters *= 2
+        self._input_height -= (kernel_size[0] - 1)
+        self._input_width -= (kernel_size[1] - 1)
 
-    for layer in model.layers:
-        x = layer(x)
+        return self
 
-    out = x
+    def add_pooling_layer(self):
+        self._model.add(MaxPool2D(pool_size=(2, 2)))
+        self._input_width = self._input_width // 2
+        self._input_height = self._input_height // 2
 
-    new_model = Model(input=inp, output=out)
+        return self
 
-    return new_model
+    def add_batch_norm_layer(self):
+        self._model.add(BatchNormalization())
+        return self
 
+    def add_dropout_layer(self, drop_prob=0.5):
+        self._model.add(Dropout(drop_prob))
+        return self
 
-def get_regression_model(input_shape, output_shape):
-    from keras import Sequential, Model
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Reshape, Conv2D, MaxPool2D, Input, Add, Activation
+    def add_fully_connected_layer(self):
+        self._model.add(
+            Conv2D(filters=self._filters,
+                   kernel_size=(self._input_height, self._input_width),
+                   kernel_initializer='he_normal', activation='relu')
+        )
 
-    drop_prob = 0.1
+        self._input_height = 1
+        self._input_width = 1
+        return self
 
-    inp = Input(shape=input_shape)
-    x = inp
+    def add_output_layer(self, num_classes):
+        self._model.add(Conv2D(filters=num_classes, kernel_size=(1, 1),
+                               kernel_initializer='he_normal',
+                               activation='softmax')
+                        )
+        return self
 
-    x = Conv2D(filters=50, kernel_size=(3, 3), padding='same', activation='relu', kernel_initializer='he_normal')(x)
-    x = MaxPool2D()(x)
-    x = BatchNormalization()(x)
+    def add_binary_classification_layer(self):
+        self._model.add(Conv2D(filters=1, kernel_size=(1, 1),
+                               kernel_initializer='he_normal',
+                               activation='sigmoid')
+                        )
+        return self
 
-    x = Conv2D(filters=100, kernel_size=(3, 3), padding='same', activation='relu', kernel_initializer='he_normal')(x)
-    x = MaxPool2D()(x)
-    x = BatchNormalization()(x)
+    def load_weights(self, path):
+        self._model.load_weights(path)
 
-    x = Flatten()(x)
+    def get_complete_model(self, input_shape):
+        inp = Input(shape=input_shape)
+        x = inp
+        for layer in self._model.layers:
+            x = layer(x)
 
-    x = Dense(units=500, activation='relu', kernel_initializer='he_normal')(x)
-    x = BatchNormalization()(x)
+        return Model(input=inp, output=x)
 
-    output_units = 1
-    for dim in output_shape:
-        output_units *= dim
+    def index_of_last_extraction_layer(self):
+        for i in range(len(self._model.layers)):
+            layer = self._model.layers[i]
+            if layer.name == 'last_feature_extraction_layer':
+                return i
 
-    #model.add(Dropout(drop_prob))
-    x = Dense(units=output_units, activation='relu', kernel_initializer='he_normal')(x)
-    out = Reshape(target_shape=output_shape)(x)
+    def get_feature_extractor(self, input_shape):
+        inp = Input(shape=input_shape)
+        x = inp
 
-    return Model(input=inp, output=out)
+        for i in range(self.index_of_last_extraction_layer() + 1):
+            layer = self._model.layers[i]
+            x = layer(x)
 
+        out = x
+        return Model(input=inp, output=out)
 
-def end_to_end_model(feature_extractor, regression_model):
-    from keras import Model
-    from keras.layers import Input
+    def get_classifier(self, input_shape):
+        inp = Input(shape=input_shape)
+        x = inp
 
-    inp = Input(shape=feature_extractor.input_shape[1:])
-    x = inp
-    for layer in feature_extractor.layers:
-        x = layer(x)
+        pooling_index = self.index_of_last_extraction_layer() + 1
 
-    for layer in regression_model.layers:
-        x = layer(x)
+        for i in range(pooling_index, len(self._model.layers)):
+            layer = self._model.layers[i]
+            x = layer(x)
 
-    out = x
-
-    combined_model = Model(inp, out)
-
-    return combined_model
-
-
-def get_model():
-    return get_math_symbols_model()
-
-
-def initialize_math_recognition_model(input_shape=(45, 45, 1)):
-    from keras.layers import Dense, Dropout, Flatten, BatchNormalization, Conv2D, MaxPool2D
-    from keras.models import Sequential
-
-    drop_prob = 0.1
-
-    model = Sequential()
-    model.add(Conv2D(input_shape=input_shape, filters=6, kernel_size=(5, 5),
-                     kernel_initializer='he_normal', activation='relu'))
-    model.add(BatchNormalization())
-
-    model.add(Conv2D(filters=12, kernel_size=(5, 5),
-                     kernel_initializer='he_normal', activation='relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-
-    model.add(Conv2D(filters=24, kernel_size=(3, 3),
-                     kernel_initializer='he_normal', activation='relu'))
-    model.add(BatchNormalization())
-
-    model.add(Conv2D(filters=24, kernel_size=(3, 3),
-                     kernel_initializer='he_normal', activation='relu'))
-    model.add(MaxPool2D(pool_size=(2, 2)))
-    model.add(BatchNormalization())
-
-    model.add(Flatten())
-    model.add(Dense(units=50, activation='relu', kernel_initializer='he_normal'))
-    model.add(BatchNormalization())
-    model.add(Dropout(drop_prob))
-
-    model.add(Dense(units=50, activation='relu', kernel_initializer='he_normal'))
-    model.add(BatchNormalization())
-    model.add(Dropout(drop_prob))
-
-    model.add(Dense(units=14, activation='softmax'))
-    return model
+        out = x
+        return Model(input=inp, output=out)
 
 
-def get_math_symbols_model():
-    model = initialize_math_recognition_model()
-    model.load_weights('keras_model.h5')
+def build_classification_model(input_shape, num_classes):
 
-    class Predictor:
-        def predict(self, x):
-            x = x.reshape(x.shape[0], 45, 45, 1)
-            return model.predict(x)
+    builder = ModelBuilder(input_shape=input_shape, initial_num_filters=6)
+    builder.add_conv_layer(kernel_size=(5, 5)).add_batch_norm_layer()
+    builder.add_conv_layer(kernel_size=(5, 5))
+    builder.add_pooling_layer().add_batch_norm_layer()
 
-    return Predictor()
+    builder.add_conv_layer().add_batch_norm_layer()
+    builder.add_conv_layer()
+    builder.add_pooling_layer().add_batch_norm_layer()
+
+    builder.add_fully_connected_layer().add_batch_norm_layer().add_dropout_layer(0.1)
+    builder.add_fully_connected_layer().add_batch_norm_layer().add_dropout_layer(0.1)
+
+    builder.add_output_layer(num_classes=num_classes)
+    return builder
 
 
-def norm_generator(gen):
-    for x_batch, y_batch in gen:
-        yield x_batch / 255.0, y_batch
+def train_model(model, train_gen, validation_gen, m_train, m_val, mini_batch_size=32,
+                loss='categorical_crossentropy', metrics=None,
+                save_path='../trained_model.h5', epochs=6):
+    if metrics is None:
+        metrics = ['accuracy']
 
+    model_to_train = model
+    model_to_train.compile(optimizer='adam', loss=loss, metrics=metrics)
 
-def train_math_recognition_model(epochs):
-    import os
-    from dataset_utils import dataset_generator, dataset_size, load_dataset
-
-    dir_path = os.path.join('datasets', 'digits_and_operators_csv')
-    train_path = os.path.join(dir_path, 'train')
-    dev_path = os.path.join(dir_path, 'dev')
-    test_path = os.path.join(dir_path, 'test')
-
-    batch_size = 128
-    m_train, _ = dataset_size(train_path)
-    m_val, _ = dataset_size(dev_path)
-    m_test, _ = dataset_size(test_path)
-
-    print('NUMBER OF TRAINING EXAMPLES', m_train)
-    print('NUMBER OF DEV EXAMPLES', m_val)
-    print('NUMBER OF TEST EXAMPLES', m_test)
-
-    model = initialize_math_recognition_model()
-
-    model.compile(optimizer='adam', loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    x, labels = load_dataset(train_path)
-    x_dev, labels_dev = load_dataset(dev_path)
-
-    train_gen = dataset_generator(x, labels, mini_batch_size=batch_size)
-    dev_gen = dataset_generator(x_dev, labels_dev, mini_batch_size=batch_size)
-
-    model.fit_generator(train_gen,
-                        steps_per_epoch=int(m_train / batch_size),
-                        epochs=epochs,
-                        validation_data=dev_gen,
-                        validation_steps=int(m_val / batch_size))
-
-    x_test, labels_test = load_dataset(test_path)
-    test_gen = dataset_generator(x_test, labels_test, mini_batch_size=batch_size)
-
-    res = model.evaluate_generator(test_gen, steps=int(m_test / batch_size))
-    print(res)
-    model.save_weights('keras_model.h5')
+    model_to_train.fit_generator(
+        generator=train_gen,
+        steps_per_epoch=int(m_train / mini_batch_size),
+        epochs=epochs,
+        validation_data=validation_gen,
+        validation_steps=int(m_val / mini_batch_size)
+    )
+    model_to_train.save_weights(save_path)
 
 
 if __name__ == '__main__':
@@ -200,4 +158,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_math_recognition_model(epochs=args.epochs)
+    #train_math_recognition_model(epochs=args.epochs)
