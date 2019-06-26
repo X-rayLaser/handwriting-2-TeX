@@ -55,12 +55,14 @@ Window {
                 onPaint: {
                     var ctx = getContext("2d");
                     ctx.fillStyle = "rgb(255, 255, 255)";
+                    ctx.lineWidth = 3;
                     mouse_area.points.forEach(function (figurePoints) {
                         ctx.beginPath();
                         ctx.moveTo(figurePoints[0]);
                         ctx.lineTo(figurePoints[0]);
                         figurePoints.forEach(function (p) {
-                            ctx.lineTo(p.x, p.y)
+                            ctx.lineTo(p.x, p.y);
+                            ctx.moveTo(p.x, p.y);
                         });
                     });
                     ctx.stroke();
