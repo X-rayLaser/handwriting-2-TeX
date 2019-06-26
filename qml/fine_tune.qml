@@ -7,8 +7,8 @@ Window {
     id: root
     x: 400
     y: 400
-    width: 400
-    height: 650
+    width: 300
+    height: 300
     visible: true
 
     property int char_index: 0
@@ -21,6 +21,12 @@ Window {
 
     property bool enough_examples: false
 
+    readonly property int min_examples: 5
+
+    readonly property int canvas_height: 90
+
+    readonly property int canvas_width: 90
+
     Column {
         spacing: 10
 
@@ -32,24 +38,19 @@ Window {
             id: predicted_expression
 
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Draw a symbol " + current_character
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "# of examples: " + String(num_examples)
+            text: "Draw a symbol '" + current_character + "'"
         }
 
         Rectangle {
-            width: 90
-            height: 90
+            width: canvas_width
+            height: canvas_height
             anchors.horizontalCenter: parent.horizontalCenter
             border.color: "red"
 
             Canvas {
                 id: canvas
-                width: 90
-                height: 90
+                width: parent.width
+                height: parent.height
 
                 onPaint: {
                     var ctx = getContext("2d");
@@ -94,11 +95,16 @@ Window {
             }
         }
 
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "# of examples: " + String(num_examples)
+        }
+
         Row {
             spacing: 10
             anchors.horizontalCenter: parent.horizontalCenter
             Button {
-                text: "Eraze"
+                text: "Erase"
                 onClicked: {
                     mouse_area.points = [];
                     canvas.getContext("2d").reset();
@@ -121,7 +127,7 @@ Window {
                     var width = imageData.width;
                     var height = imageData.height;
 
-                    manager.add_image(data, current_character);
+                    manager.add_image(data, current_character, height, width);
 
                     mouse_area.points = [];
                     canvas.getContext("2d").reset();
@@ -138,7 +144,7 @@ Window {
                     current_character = characters[char_index];
 
                     num_examples = num_examples + 1;
-                    if (num_examples > 25) {
+                    if (num_examples > min_examples) {
                         calibrate_button.enabled = true;
                     }
                 }
@@ -148,22 +154,36 @@ Window {
         Button {
             id: calibrate_button
 
+            anchors.horizontalCenter: parent.horizontalCenter
+
             text: "Start tuning"
 
             enabled: false
 
             onClicked: {
-                manager.fine_tune();
+                manager.fine_tune(30);
                 calibrate_button.enabled = false;
                 add_button.enabled = false;
+                progress_bar.visible = true;
+                calibration_info.visible = false;
             }
+        }
+
+        ProgressBar {
+            id: progress_bar
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            indeterminate: true
+            visible: false
         }
 
         Text {
             id: calibration_info
 
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Validation accuracy: " + String(val_accuracy)
+            text: "Validation accuracy: " + String(val_accuracy.toFixed(2))
+
+            visible: false
         }
 
         Connections {
@@ -172,6 +192,8 @@ Window {
                 val_accuracy = accuracy;
                 add_button.enabled = true;
                 num_examples = 0;
+                progress_bar.visible = false;
+                calibration_info.visible = true;
             }
         }
 

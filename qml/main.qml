@@ -108,7 +108,7 @@ Window {
             spacing: 10
             anchors.horizontalCenter: parent.horizontalCenter
             Button {
-                text: "Eraze"
+                text: "Erase"
                 onClicked: {
                     mouse_area.points = [];
                     canvas.getContext("2d").reset();
