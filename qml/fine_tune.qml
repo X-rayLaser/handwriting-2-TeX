@@ -15,6 +15,8 @@ Window {
 
     property string current_character: "0"
 
+    property double val_accuracy: 0
+
     Column {
         spacing: 10
 
@@ -136,14 +138,22 @@ Window {
 
             onClicked: {
                 manager.fine_tune();
+                calibrate_button.enabled = false;
             }
+        }
+
+        Text {
+            id: calibration_info
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Validation accuracy: " + String(val_accuracy)
         }
 
         Connections {
             target: manager
-            onPredictionReady: {
-                latex = prediction;
-                webEngineView.reload();
+            onTuningComplete: {
+                val_accuracy = accuracy;
+                calibrate_button.enabled = true;
             }
         }
 

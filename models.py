@@ -130,6 +130,14 @@ def build_classification_model(input_shape, num_classes):
     return builder
 
 
+def calculate_num_steps(num_examples, batch_size):
+    n = int(num_examples / batch_size)
+    if n == 0:
+        n = 1
+
+    return n
+
+
 def train_model(model, train_gen, validation_gen, m_train, m_val, mini_batch_size=32,
                 loss='categorical_crossentropy', metrics=None,
                 save_path='trained_model.h5', epochs=6):
@@ -141,10 +149,10 @@ def train_model(model, train_gen, validation_gen, m_train, m_val, mini_batch_siz
 
     model_to_train.fit_generator(
         generator=train_gen,
-        steps_per_epoch=int(m_train / mini_batch_size),
+        steps_per_epoch=calculate_num_steps(m_train, mini_batch_size),
         epochs=epochs,
         validation_data=validation_gen,
-        validation_steps=int(m_val / mini_batch_size)
+        validation_steps=calculate_num_steps(m_val, mini_batch_size)
     )
     model_to_train.save_weights(save_path)
 
