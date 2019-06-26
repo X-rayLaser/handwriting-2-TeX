@@ -17,6 +17,10 @@ Window {
 
     property double val_accuracy: 0
 
+    property int num_examples: 0
+
+    property bool enough_examples: false
+
     Column {
         spacing: 10
 
@@ -29,6 +33,11 @@ Window {
 
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Draw a symbol " + current_character
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "# of examples: " + String(num_examples)
         }
 
         Rectangle {
@@ -97,7 +106,7 @@ Window {
                 }
             }
             Button {
-                id: download_button
+                id: add_button
 
                 text: "Add example"
 
@@ -127,6 +136,11 @@ Window {
                     }
 
                     current_character = characters[char_index];
+
+                    num_examples = num_examples + 1;
+                    if (num_examples > 25) {
+                        calibrate_button.enabled = true;
+                    }
                 }
             }
         }
@@ -136,9 +150,12 @@ Window {
 
             text: "Start tuning"
 
+            enabled: false
+
             onClicked: {
                 manager.fine_tune();
                 calibrate_button.enabled = false;
+                add_button.enabled = false;
             }
         }
 
@@ -153,7 +170,8 @@ Window {
             target: manager
             onTuningComplete: {
                 val_accuracy = accuracy;
-                calibrate_button.enabled = true;
+                add_button.enabled = true;
+                num_examples = 0;
             }
         }
 

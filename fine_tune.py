@@ -88,7 +88,7 @@ class Calibrator(QtCore.QThread):
             train_model(model=classifier, train_gen=train_gen,
                         validation_gen=val_gen, m_train=m_train, m_val=m_val,
                         mini_batch_size=batch_size,
-                        save_path=tuned_path, epochs=1)
+                        save_path=tuned_path, epochs=10)
 
             metrics = classifier.evaluate_generator(
                 generator=self.get_generator(val_examples, batch_size),
