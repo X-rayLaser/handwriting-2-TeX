@@ -229,13 +229,13 @@ class LatexConstructionTests(unittest.TestCase):
         self.assertEqual(latex, '43 * 538')
 
     def test_number1_over_number2(self):
-        num1_segments = self.create_number_segments(200, 200, '43')
+        num1_segments = self.create_number_segments(200, 200, '4')
         div_segment = Primitive.new_primitive('div', 198, 260)
-        num2_segments = self.create_number_segments(198, 320, '53')
+        num2_segments = self.create_number_segments(198, 320, '5')
 
         segments = num1_segments + [div_segment] + num2_segments
         latex = construct_latex(segments=segments, width=500, height=500)
-        self.assertEqual(latex, '\\\\frac{43}{53}')
+        self.assertEqual(latex, '\\frac{4}{5}')
 
     def create_number_segments(self, x, y, digits):
         segments = []

@@ -12,6 +12,7 @@ import os
 
 class Recognizer(QtCore.QThread):
     completed = QtCore.pyqtSignal(str)
+    skip = QtCore.pyqtSignal()
 
     def __init__(self, jobs_queue, models_paths, img_width=300, img_height=300):
         super().__init__()
@@ -30,6 +31,7 @@ class Recognizer(QtCore.QThread):
         job = self.jobs_queue.get()
 
         while not self.jobs_queue.empty():
+            self.skip.emit()
             job = self.jobs_queue.get()
         return job
 
@@ -69,9 +71,17 @@ class AppManager(QtCore.QObject):
         model_paths = self.get_model_paths()
         self.thread = Recognizer(self.jobs, model_paths, img_width=400, img_height=300)
 
-        self.thread.completed.connect(
-            lambda res: self.predictionReady.emit(res)
-        )
+        self._jobs_left = 0
+
+        def handle_ready(res):
+            self._jobs_left -= 1
+            self.predictionReady.emit(res)
+
+        def handle_skip():
+            self._jobs_left -= 1
+
+        self.thread.completed.connect(handle_ready)
+        self.thread.skip.connect(handle_skip)
 
         self._classifier_name = 'classification_model.h5'
 
@@ -98,6 +108,7 @@ class AppManager(QtCore.QObject):
         im = Image.open('canvas.png')
         pixels = np.array([lum for alpha, lum in list(im.getdata())]).reshape(height, width)
         self.jobs.put((pixels, self._classifier_name))
+        self._jobs_left += 1
 
     @QtCore.pyqtSlot(str)
     def copy_to_clipboard(self, text):
@@ -110,6 +121,10 @@ class AppManager(QtCore.QObject):
     @QtCore.pyqtProperty(list)
     def classifiers(self):
         return [fname for path, fname in self.get_model_paths()]
+
+    @QtCore.pyqtProperty(bool)
+    def in_progress(self):
+        return self._jobs_left > 0
 
 
 if __name__ == '__main__':

@@ -13,8 +13,8 @@ Window {
 
     color: "grey"
 
-    property string latex: "\\frac{1}{4}"
-    property string escaped_latex: "\\\\frac{1}{4}"
+    property string latex: ""
+    property string escaped_latex: ""
 
     property string current_classifier: "classification_model.h5"
 
@@ -113,6 +113,7 @@ Window {
                         var width = imageData.width;
                         var height = imageData.height;
                         manager.recognize(data, width, height);
+                        progress_bar.visible = true;
                     }
                     onPositionChanged: {
                         if (pressed === true) {
@@ -169,12 +170,21 @@ Window {
             }
         }
 
+        ProgressBar {
+            id: progress_bar
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            indeterminate: true
+            visible: false
+        }
+
         Connections {
             target: manager
             onPredictionReady: {
                 latex = prediction;
                 escaped_latex = latex.split("\\").join("\\\\");
                 webEngineView.reload();
+                progress_bar.visible = manager.in_progress;
             }
         }
 
