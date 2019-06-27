@@ -11,7 +11,11 @@ Window {
     height: 650
     visible: true
 
+    color: "grey"
+
     property string latex: "\\\\frac{1}{4}"
+
+    property string current_classifier: "classification_model.h5"
 
     Column {
         spacing: 10
@@ -20,7 +24,43 @@ Window {
 
         anchors.horizontalCenter: parent.horizontalCenter
 
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 2
 
+            Repeater {
+                model: manager.classifiers
+
+                Rectangle {
+                    width: 200
+                    height: 20
+                    radius: 3
+                    Text {
+                        width: parent.width
+                        height: parent.height
+                        anchors.horizontalCenter: parent.horizontalCenter
+
+                        text: modelData
+
+                        MouseArea {
+                            anchors.fill: parent
+
+                            onClicked: {
+                                current_classifier = modelData;
+                                manager.set_classifier(current_classifier);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Text {
+            id: current_model_text
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Current model: " + current_classifier
+        }
         Rectangle {
             width: parent.width
             height: 300
