@@ -13,7 +13,8 @@ Window {
 
     color: "grey"
 
-    property string latex: "\\\\frac{1}{4}"
+    property string latex: "\\frac{1}{4}"
+    property string escaped_latex: "\\\\frac{1}{4}"
 
     property string current_classifier: "classification_model.h5"
 
@@ -134,7 +135,7 @@ Window {
 
             onLoadProgressChanged: {
                 if(loadProgress === 100){
-                    webEngineView.runJavaScript("document.getElementById('latex_body').innerHTML = '$$" + latex + "$$';");
+                    webEngineView.runJavaScript("document.getElementById('latex_body').innerHTML = '$$" + escaped_latex + "$$';");
                 }
             }
         }
@@ -172,6 +173,7 @@ Window {
             target: manager
             onPredictionReady: {
                 latex = prediction;
+                escaped_latex = latex.split("\\").join("\\\\");
                 webEngineView.reload();
             }
         }

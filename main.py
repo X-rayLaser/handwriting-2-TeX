@@ -37,7 +37,7 @@ class Recognizer(QtCore.QThread):
         classifiers = {}
         for path, fname in self._models_paths:
             builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
-            builder.load_weights('classification_model.h5')
+            builder.load_weights(path)
             classifiers[fname] = builder.get_complete_model(input_shape=(45, 45, 1))
         return classifiers
 
@@ -86,7 +86,6 @@ class AppManager(QtCore.QObject):
             if os.path.isfile(model_path) and extension == '.h5':
                 paths.append((model_path, fname))
 
-        print(paths)
         return paths
 
     @QtCore.pyqtSlot(list, int, int)
