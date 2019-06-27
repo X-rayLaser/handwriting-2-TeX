@@ -8,7 +8,7 @@ Window {
     x: 400
     y: 400
     width: 400
-    height: 650
+    height: 700
     visible: true
 
     color: "grey"
@@ -17,6 +17,9 @@ Window {
     property string escaped_latex: ""
 
     property string current_classifier: "classification_model.h5"
+
+    readonly property int canvas_width: 400
+    readonly property int canvas_height: 300
 
     Column {
         spacing: 10
@@ -62,10 +65,17 @@ Window {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Current model: " + current_classifier
         }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Drawing area"
+        }
+
         Rectangle {
-            width: parent.width
-            height: 300
+            width: canvas_width
+            height: canvas_height
             border.color: "red"
+            anchors.horizontalCenter: parent.horizontalCenter
 
             Canvas {
                 id: canvas
@@ -141,6 +151,10 @@ Window {
             }
         }
 
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "TeX markup"
+        }
         Text {
             id: predicted_expression
 

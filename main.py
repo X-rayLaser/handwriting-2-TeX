@@ -68,10 +68,16 @@ class AppManager(QtCore.QObject):
         self.clipboard = clipboard
         self.jobs = Queue()
 
-        model_paths = self.get_model_paths()
-        self.thread = Recognizer(self.jobs, model_paths, img_width=400, img_height=300)
-
         self._jobs_left = 0
+        self._classifier_name = 'classification_model.h5'
+
+        self.thread = None
+        #self.start_recognizer()
+
+    def start_recognizer(self, img_width=400, img_height=300):
+        model_paths = self.get_model_paths()
+        self.thread = Recognizer(self.jobs, model_paths, img_width=img_width,
+                                 img_height=img_height)
 
         def handle_ready(res):
             self._jobs_left -= 1
@@ -82,8 +88,6 @@ class AppManager(QtCore.QObject):
 
         self.thread.completed.connect(handle_ready)
         self.thread.skip.connect(handle_skip)
-
-        self._classifier_name = 'classification_model.h5'
 
         self.thread.start()
 
@@ -102,6 +106,10 @@ class AppManager(QtCore.QObject):
     def recognize(self, pixels, width, height):
         from PIL import Image
         import numpy as np
+
+        if not self.thread:
+            self.start_recognizer(img_width=width, img_height=height)
+
         a = bytes(pixels)
         im = Image.frombytes('RGBA', (width, height), a).convert('LA')
         im.save('canvas.png')
