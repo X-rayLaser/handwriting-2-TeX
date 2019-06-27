@@ -9,7 +9,7 @@ As of the moment of this writing, the program can recognize expressions
 consisting of digits, numbers, powers, fractions. Expressions can also 
 contain sums, differences, multiplications, division lines.
 
-Program is shipped together with a pre-trained convolutional neural net.
+Program is shipped with a pre-trained convolutional neural net.
 It also comes with tiny GUI utility which allows a user to fine-tune the
 network on examples of their own drawings.
 
@@ -100,5 +100,8 @@ pixels. The system is robust to slight variations in size, but it will
 fail on drawings corresponding to too large or too small fonts.
 
 # License
+This software is licensed under GPL v3 license (see LICENSE).
 
-GNU General Public License v3.0
+## Third party libraries licenses
+The software uses third party libraries that are distributed under 
+their own terms (see LICENSE-3RD-PARTY).
