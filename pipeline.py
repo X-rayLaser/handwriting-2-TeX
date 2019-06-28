@@ -9,54 +9,12 @@ from data_synthesis import visualize_image
 image_size = config.image_size
 
 
-def classifiy(image, model):
-    return feed_x(image, model)
-
-
-def detect_objects(image, detection_model, classification_model):
-    from object_localization.localization_pipeline import detect_locations
-
-    boxes, labels = detect_locations(image, detection_model,
-                                     classification_model)
-
-    assert len(boxes) == len(labels)
-
-    res = []
-    for i in range(len(boxes)):
-        x, y, w, h = boxes[i]
-        label = labels[i]
-        from building_blocks import RectangularRegion
-
-        region = RectangularRegion(x, y, w, h)
-
-        category_class = label
-        res.append(Primitive(category_class, region))
-
-    div_lines = get_division_lines(image)
-
-    for div_line in div_lines:
-        print('div line')
-        res = [primitive for primitive in res if div_line.region.IoU(primitive.region) <= 0]
-
-    return res + div_lines
-
-
 def image_to_latex(image, classification_model):
     from construction import construct_latex
     segments = extract_segments(image)
     primitives = recognize(segments, classification_model)
 
     return construct_latex(primitives, image.shape[1], image.shape[0])
-
-
-def feed_x(x, model):
-    x_input = prepare_input(x)
-    A = model.predict(x_input)
-    class_index = np.argmax(np.max(A, axis=0), axis=0)
-
-    category_class = index_to_class[class_index]
-
-    return category_class
 
 
 def recognize(segments, model):
@@ -74,7 +32,6 @@ def recognize(segments, model):
             x_input = prepare_input(x)
             a = model.predict(x_input)
             category_class = index_to_class[np.argmax(a)]
-            #category_class = feed_x(segment.pixels, model)
             res.append(Primitive(category_class, segment.bounding_box))
 
     return res
@@ -98,62 +55,3 @@ def get_division_lines(image):
 def prepare_input(x):
     x = x / 255.0
     return x.reshape(1, image_size, image_size, 1)
-
-
-if __name__ == '__main__':
-    import argparse
-    from data_synthesis import Synthesizer
-    from object_localization.detection_training import detection_model
-
-    img_width = 600
-    img_height = 400
-
-    parser = argparse.ArgumentParser(
-        description='Test machine learning pipeline on'
-                    'artificial math expression images'
-    )
-    parser.add_argument('--examples', type=float, default=15,
-                        help='number of examples to test on')
-
-    args = parser.parse_args()
-
-    synth = Synthesizer('datasets/digits_and_operators_csv/test', img_width=img_width, img_height=img_height)
-
-    from object_localization.localization_training import build_classification_model
-
-    builder = build_classification_model(input_shape=(45, 45, 1), num_classes=14)
-    builder.load_weights('localization_model.h5')
-    model = builder.get_complete_model(input_shape=(45, 45, 1))
-
-    dmodel_builder = detection_model(input_shape=(45, 45, 1))
-    dmodel_builder.load_weights('detection_model.h5')
-    det_model = dmodel_builder.get_complete_model(input_shape=(img_height, img_width, 1))
-
-    n = args.examples
-
-    correct = 0
-    predicted_latex = ''
-    latex = ''
-    for i in range(n):
-        try:
-            image, latex = synth.synthesize_example()
-
-            predicted_latex = image_to_latex(image, det_model, model)
-            if latex == predicted_latex:
-                correct += 1
-                visualize_image(image)
-            else:
-                #visualize_image(image)
-                print('Invalid recognition: {} -> {}'.format(latex,
-                                                             predicted_latex))
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            #visualize_image(image)
-            print('Invalid recognition: {} -> {}'.format(latex,
-                                                         predicted_latex))
-
-    percentage = float(correct) / n * 100
-    print('Classified correctly {} %, ({} out of {} expressions)'.format(
-        percentage, correct, n)
-    )
