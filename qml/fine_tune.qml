@@ -3,6 +3,8 @@ import QtQuick.Window 2.0
 import QtQuick.Controls 2.2
 import QtWebEngine 1.0
 
+import "../qml/"
+
 Window {
     id: root
     x: 400
@@ -27,6 +29,8 @@ Window {
 
     readonly property int canvas_width: 90
 
+    readonly property var characters: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', 'times'];
+
     Column {
         spacing: 10
 
@@ -41,60 +45,10 @@ Window {
             text: "Draw a symbol '" + current_character + "'"
         }
 
-        Rectangle {
-            width: canvas_width
-            height: canvas_height
-            anchors.horizontalCenter: parent.horizontalCenter
-            border.color: "red"
-
-            Canvas {
-                id: canvas
-                width: parent.width
-                height: parent.height
-
-                onPaint: {
-                    var ctx = getContext("2d");
-                    ctx.fillStyle = "rgb(255, 255, 255)";
-                    ctx.lineWidth = 3;
-                    mouse_area.points.forEach(function (figurePoints) {
-                        ctx.beginPath();
-                        ctx.moveTo(figurePoints[0]);
-                        ctx.lineTo(figurePoints[0]);
-                        figurePoints.forEach(function (p) {
-                            ctx.lineTo(p.x, p.y);
-                            ctx.moveTo(p.x, p.y);
-                        });
-                    });
-                    ctx.stroke();
-                }
-
-                MouseArea {
-                    id: mouse_area
-                    anchors.fill: parent
-                    hoverEnabled: true
-
-                    property var points : []
-
-                    property bool pressed: false
-                    onPressed: {
-                        pressed = true;
-                        points.push([]);
-                    }
-
-                    onReleased: {
-                        pressed = false;
-                    }
-                    onPositionChanged: {
-                        if (pressed === true) {
-                            var figurePoints = points[points.length - 1];
-
-                            figurePoints.push({x: mouseX, y: mouseY})
-
-                            canvas.requestPaint();
-                        }
-                    }
-                }
-            }
+        DrawingArea {
+            id: drawing_area
+            areaWidth: canvas_width
+            areaHeight: canvas_height
         }
 
         Text {
@@ -108,9 +62,7 @@ Window {
             Button {
                 text: "Erase"
                 onClicked: {
-                    mouse_area.points = [];
-                    canvas.getContext("2d").reset();
-                    canvas.requestPaint();
+                    drawing_area.erase();
                 }
             }
             Button {
@@ -119,23 +71,11 @@ Window {
                 text: "Add example"
 
                 onClicked: {
-                    var w = canvas.width;
-                    var h = canvas.height;
-                    var imageData = canvas.getContext("2d").getImageData(0, 0, w, h);
-                    var data = [];
-                    for (var i = 0; i < imageData.data.length; i++) {
-                        data.push(imageData.data[i]);
-                    }
-                    var width = imageData.width;
-                    var height = imageData.height;
+                    var res = drawing_area.canvasData()
 
-                    manager.add_image(data, current_character, height, width);
+                    manager.add_image(res.data, current_character, res.height, res.width);
 
-                    mouse_area.points = [];
-                    canvas.getContext("2d").reset();
-                    canvas.requestPaint();
-
-                    var characters = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', 'times'];
+                    drawing_area.erase();
 
                     char_index = char_index + 1;
 
