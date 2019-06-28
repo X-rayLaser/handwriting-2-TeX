@@ -52,7 +52,7 @@ Click a button "Copy to clipboard" to copy the TeX markup to the clipboard.
 Click a button "Erase" to erase everything on the canvas.
 
 Experiment with more complex expressions like the following:
-![alt text](drawing_example.png "Batch of generated sequences starting with 'A'")
+![alt text](drawing_example.png "Typical mathematical expression")
 
 ## Fine-tuning
 
