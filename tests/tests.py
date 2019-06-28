@@ -416,33 +416,5 @@ class SegmentationTests(unittest.TestCase):
         locate_digits(a)
 
 
-class YoloVolume(unittest.TestCase):
-    def test_serialized_has_correct_size(self):
-        from yolo.volume import YoloVolume
-        volume = YoloVolume(image_width=350, image_height=350, grid_size=9,
-                            num_classes=14, max_boxes=200)
-
-        box = (95, 32, 45, 45)
-        volume.add_item(box, 13)
-        raw = volume.to_raw_data()
-        self.assertEqual(len(raw), 1001)
-
-    def test_serialization_and_deserialization(self):
-        from yolo.volume import YoloVolume
-        volume = YoloVolume(image_width=350, image_height=350, grid_size=9,
-                            num_classes=14)
-
-        for i in range(0, 350, 50):
-            for j in range(0, 350, 50):
-                box = (i, j, 45, 45)
-                volume.add_item(box, 13)
-
-        new_vol = volume.from_raw_data(image_width=350, image_height=350,
-                                       grid_size=9, num_classes=14,
-                                       raw_data=volume.to_raw_data())
-        self.assertEqual(volume.output_volume.tolist(),
-                         new_vol.output_volume.tolist())
-
-
 if __name__ == '__main__':
     unittest.main()
