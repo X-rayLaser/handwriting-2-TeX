@@ -13,6 +13,10 @@ Program is shipped with a pre-trained convolutional neural net.
 It also comes with tiny GUI utility which allows a user to fine-tune the
 network on examples of their own drawings.
 
+## Demo
+
+![alt text](demo.gif "Demo")
+
 # Installation
 
 Clone the repository
