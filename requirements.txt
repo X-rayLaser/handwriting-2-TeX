@@ -1,6 +1,6 @@
 PyQt5==5.12.1
 PyQtWebEngine==5.12.1
-numpy==1.16.2
+numpy==1.22.0
 Pillow==6.2.0
 python-mnist==0.6
 tensorflow==1.13.1
