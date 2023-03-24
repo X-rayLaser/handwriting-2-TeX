@@ -3,7 +3,7 @@ PyQtWebEngine==5.12.1
 numpy==1.16.2
 Pillow==6.2.0
 python-mnist==0.6
-tensorflow==1.13.1
+tensorflow==2.11.1
 Keras==2.2.4
 networkx==2.2
 Shapely==1.6.4.post2
